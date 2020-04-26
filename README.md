@@ -1,6 +1,6 @@
 # Better Backgrounds for Cinnamon #
 
-This applet allows the user to change his background to random images from Unsplash.
+A Cinnamon desktop applet to change your wallpaper to Unsplash random images.
 
 The icon has been merged from the following Pixabay images:
 - https://pixabay.com/vectors/recycle-reload-icon-arrown-circle-159650/
