@@ -90,7 +90,7 @@
     },
     "image-tag-info" : {
         "type" : "label",
-        "description" : "Please make sure to choose an available tag, otherwise the background can't be changed! Make sure to seperate the tags by a ',' and no spaces. A valid search term would be 'nature,water'...",
+        "description" : "Please make sure to choose an available tag, otherwise the background can't be changed! Make sure to seperate the tags by a ',' and not spaces, also the tags are used as ANDs - not as ORs!. A valid search term would be 'nature,water'...",
         "dependency" : "image-tag"
     },
     "image-tag-data" : {
@@ -99,7 +99,7 @@
         "description" : "Search tags",
         "indent": true,
         "dependency" : "image-tag",
-        "tooltip" : "Enter your topics - like space"
+        "tooltip" : "Enter your topic filters"
     },
     "image-align-info" : {
         "type" : "label",
