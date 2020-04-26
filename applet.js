@@ -7,7 +7,7 @@ const Tweener = imports.ui.tweener;
 
 const uuid = "better-backgrounds@simonmicro";
 const appletPath = AppletManager.appletMeta[uuid].path;
-const bgPath = appletPath + '/background';
+const imagePath = appletPath + '/background';
 
 function log(msg) {
     global.log('[' + uuid + '] ' + msg);
@@ -58,7 +58,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
     }
 
     _change_background() {
-        let gFile = Gio.file_new_for_path(bgPath);
+        let gFile = Gio.file_new_for_path(imagePath);
         let fStream = gFile.replace(null, false, Gio.FileCreateFlags.NONE, null);
         let resStr = 'featured';
         if(this.image_res_manual)
@@ -79,8 +79,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
 
             if (message.status_code === 200) {
                 let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});
-                gSetting.set_string('picture-uri', 'file://' + bgPath);
-                gSetting.set_string('picture-options', 'zoom');
+                gSetting.set_string('picture-uri', 'file://' + imagePath);
                 Gio.Settings.sync();
                 gSetting.apply();
             } else

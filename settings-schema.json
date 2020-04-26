@@ -20,7 +20,7 @@
         "imageconf": {
             "type": "section",
             "title": "Image",
-            "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height", "image-tag", "image-tag-info", "image-tag-data", "image-update-button"]
+            "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height", "image-tag", "image-tag-info", "image-tag-data", "image-align-info", "image-update-button"]
         }
     },
     "change-onstart" : {
@@ -100,6 +100,10 @@
         "indent": true,
         "dependency" : "image-tag",
         "tooltip" : "Enter your topics - like space"
+    },
+    "image-align-info" : {
+        "type" : "label",
+        "description" : "Note that properties for the image alignment are not modified from the original desktop wallpaper. Recommended is to choose the 'zoom' option, because it ensures always the best fit on your screen."
     },
     "image-update-button" : {
         "type" : "button",
