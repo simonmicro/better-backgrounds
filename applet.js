@@ -19,6 +19,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
 
         this.settings = new imports.ui.settings.AppletSettings(this, uuid, instance_id);
 
+        this.settings.bind("applet-icon-animation", "applet_icon_animation", this.on_settings_changed);
         this.settings.bind("change-onstart", "change_onstart", this.on_settings_changed);
         this.settings.bind("change-onclick", "change_onclick", this.on_settings_changed);
         this.settings.bind("change-ontime", "change_ontime", this.on_settings_changed);
@@ -58,10 +59,11 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
     }
 
     _set_icon_opacity(newValue) {
-        Tweener.addTween(this._applet_icon, {
-            opacity: newValue,
-            time: 0.8
-        });
+        if(this.applet_icon_animation)
+            Tweener.addTween(this._applet_icon, {
+                opacity: newValue,
+                time: 0.8
+            });
     }
 
     _icon_animate() {
