@@ -74,9 +74,9 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
     }
 
     _icon_start() {
-        //Only start animation if not one already running...
-        if(!this._animator)
-            this._animator = imports.mainloop.timeout_add_seconds(1, imports.lang.bind(this, this._icon_animate));
+        //Start animation and ensure no other is running (anymore)...
+        this._icon_stop();
+        this._animator = imports.mainloop.timeout_add_seconds(1, imports.lang.bind(this, this._icon_animate));
     }
 
     _icon_stop() {
