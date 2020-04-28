@@ -101,12 +101,6 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         let tagStr = '';
 
         switch(this.image_source) {
-            case 'placekitten':
-                resStr = '1920/1080';
-                if(this.image_res_manual)
-                    resStr = this.image_res_width + '/' + this.image_res_height;
-                this._download_image('http://placekitten.com/' + resStr);
-            break;
             case 'unsplash':
                 resStr = 'featured';
                 if(this.image_res_manual)
@@ -114,6 +108,18 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                 if(this.image_tag)
                     tagStr = '?' + this.image_tag_data;
                 this._download_image('https://source.unsplash.com/' + resStr + '/' + tagStr);
+            break;
+            case 'placekitten':
+                resStr = '1920/1080';
+                if(this.image_res_manual)
+                    resStr = this.image_res_width + '/' + this.image_res_height;
+                this._download_image('http://placekitten.com/' + resStr);
+            break;
+            case 'picsum':
+                resStr = '1920/1080';
+                if(this.image_res_manual)
+                    resStr = this.image_res_width + '/' + this.image_res_height;
+                this._download_image('https://picsum.photos/' + resStr);
             break;
         }
     }

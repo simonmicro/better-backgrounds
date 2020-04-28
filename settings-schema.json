@@ -10,7 +10,7 @@
         "pageImage": {
             "type": "page",
             "title": "Image",
-            "sections": ["imagesource", "imageresunsplash", "imageresplacekitten", "imagetags", "imageapply"]
+            "sections": ["imagesource", "imageresunsplash", "imageresplacekitten", "imagerespicsum", "imagetags", "imageapply"]
         },
         "applet": {
             "type": "section",
@@ -37,6 +37,12 @@
             "type": "section",
             "title": "Resolution",
             "dependency": "image-source=placekitten",
+            "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height"]
+        },
+        "imagerespicsum": {
+            "type": "section",
+            "title": "Resolution",
+            "dependency": "image-source=picsum",
             "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height"]
         },
         "imagetags": {
@@ -91,7 +97,8 @@
         "default" : "unsplash",
         "options" : {
             "Unsplash" : "unsplash",
-            "Placekitten" : "placekitten"
+            "Placekitten" : "placekitten",
+            "Picsum Photos" : "picsum"
         }
     },
     "image-res-manual" : {
