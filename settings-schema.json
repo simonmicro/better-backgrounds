@@ -10,7 +10,7 @@
         "pageImage": {
             "type": "page",
             "title": "Image",
-            "sections": ["imagesource", "imageresunsplash", "imageresplacekitten", "imagerespicsum", "imagetags", "imageapply"]
+            "sections": ["imagesource", "imageresplacecutycapt", "imageresplacekitten", "imagerespicsum", "imageresunsplash", "imageurl", "imagetags", "imageapply"]
         },
         "applet": {
             "type": "section",
@@ -25,7 +25,7 @@
         "imagesource": {
             "type": "section",
             "title": "Source",
-            "keys": ["image-source"]
+            "keys": ["image-source", "install-warn-cutycapt"]
         },
         "imageresunsplash": {
             "type": "section",
@@ -39,11 +39,23 @@
             "dependency": "image-source=placekitten",
             "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height"]
         },
+        "imageresplacecutycapt": {
+            "type": "section",
+            "title": "Resolution",
+            "dependency": "image-source=cutycapt",
+            "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height"]
+        },
         "imagerespicsum": {
             "type": "section",
             "title": "Resolution",
             "dependency": "image-source=picsum",
             "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height"]
+        },
+        "imageurl": {
+            "type": "section",
+            "title": "URI",
+            "dependency": "image-source=cutycapt",
+            "keys": ["image-uri"]
         },
         "imagetags": {
             "type": "section",
@@ -97,10 +109,16 @@
         "default" : "unsplash",
         "options" : {
             "Bing" : "bing",
+            "Cutycapt" : "cutycapt",
             "Placekitten" : "placekitten",
             "Picsum Photos" : "picsum",
             "Unsplash" : "unsplash"
         }
+    },
+    "install-warn-cutycapt" : {
+        "type" : "label",
+        "description" : "Please make sure to install the 'cutycapt' package from the package manager of your choice!",
+        "dependency" : "image-source=cutycapt"
     },
     "image-res-manual" : {
         "type" : "switch",
@@ -155,6 +173,13 @@
     "image-align-info" : {
         "type" : "label",
         "description" : "Note that properties for the image alignment are not modified from the original desktop wallpaper. Recommended is to choose the 'zoom' option, because it ensures always the best fit on your screen."
+    },
+    "image-uri" : {
+        "type" : "entry",
+        "default" : "https://distrowatch.com/",
+        "description" : "Website URI to render",
+        "indent": true,
+        "tooltip" : "Enter the website URI which sould be rendered as your background"
     },
     "image-update-button" : {
         "type" : "button",

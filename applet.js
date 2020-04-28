@@ -28,6 +28,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this.settings.bind("image-res-manual", "image_res_manual", this.on_settings_changed);
         this.settings.bind("image-res-width", "image_res_width", this.on_settings_changed);
         this.settings.bind("image-res-height", "image_res_height", this.on_settings_changed);
+        this.settings.bind("image-uri", "image_uri", this.on_settings_changed);
         this.settings.bind("image-tag", "image_tag", this.on_settings_changed);
         this.settings.bind("image-tag-data", "image_tag_data", this.on_settings_changed);
 
@@ -99,8 +100,16 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this._icon_start();
         let resStr = '';
         let tagStr = '';
+        let cmdStr = '';
 
         switch(this.image_source) {
+            case 'cutycapt':
+                if(this.image_res_manual)
+                    resStr = ' --min-width=' + this.image_res_width + ' --min-height=' + this.image_res_height;
+                cmdStr = 'cutycapt --out-format=png --url="' + this.image_uri + '" --out="' + imagePath + '"' + resStr;
+                log('Running ' + cmdStr);
+                imports.ui.main.Util.spawnCommandLine(cmdStr);
+            break;
             case 'bing':
                 let request = Soup.Message.new('GET', 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mbl=1');
                 var that = this;
