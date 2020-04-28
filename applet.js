@@ -55,7 +55,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
 
     _timeout_enable() {
         this._timeout_disable();
-        this._timeout = imports.mainloop.timeout_add_seconds(this.change_time * 60, imports.lang.bind(this, this._change_background));
+        this._timeout = imports.mainloop.timeout_add_seconds(this.change_time * 60, imports.lang.bind(this, this._auto_change_background));
     }
 
     _set_icon_opacity(newValue) {
@@ -73,6 +73,12 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this._animator = imports.mainloop.timeout_add_seconds(1, imports.lang.bind(this, this._icon_animate));
     }
 
+    _icon_start() {
+        //Only start animation if not one already running...
+        if(!this._animator)
+            this._animator = imports.mainloop.timeout_add_seconds(1, imports.lang.bind(this, this._icon_animate));
+    }
+
     _icon_stop() {
         //Abort queued step
         if(this._animator)
@@ -82,8 +88,14 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this._set_icon_opacity(255);
     }
 
+    _auto_change_background() {
+        //Updates the background and then retriggers the timeout for this...
+        this._change_background();
+        this._timeout_update();
+    }
+
     _change_background() {
-        this._icon_animate();
+        this._icon_start();
 
         let gFile = Gio.file_new_for_path(imagePath);
         let fStream = gFile.replace(null, false, Gio.FileCreateFlags.NONE, null);
@@ -112,7 +124,6 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                 gSetting.apply();
             } else
                 log('Could not download image!');
-            that._timeout_update();
             that._icon_stop();
         });
         log('Downloading ' + imageUri);
