@@ -96,9 +96,10 @@
         "description" : "Image source",
         "default" : "unsplash",
         "options" : {
-            "Unsplash" : "unsplash",
+            "Bing" : "bing",
             "Placekitten" : "placekitten",
-            "Picsum Photos" : "picsum"
+            "Picsum Photos" : "picsum",
+            "Unsplash" : "unsplash"
         }
     },
     "image-res-manual" : {

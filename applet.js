@@ -101,6 +101,18 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         let tagStr = '';
 
         switch(this.image_source) {
+            case 'bing':
+                let request = Soup.Message.new('GET', 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mbl=1');
+                var that = this;
+                this.httpSession.queue_message(request, function(http, msg) {
+                    if (msg.status_code === 200)
+                        that._download_image('https://www.bing.com' + JSON.parse(msg.response_body.data).images[0].url);
+                    else
+                        log('Could not download image!');
+                    that._icon_stop();
+                });
+                log('Downloading bing metadata');
+            break;
             case 'unsplash':
                 resStr = 'featured';
                 if(this.image_res_manual)
