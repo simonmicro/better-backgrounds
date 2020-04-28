@@ -75,7 +75,9 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
 
     _icon_stop() {
         //Abort queued step
-        imports.mainloop.source_remove(this._animator);
+        if(this._animator)
+            imports.mainloop.source_remove(this._animator);
+        this._animator = null;
         //And fade back to normal
         this._set_icon_opacity(255);
     }
