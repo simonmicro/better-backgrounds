@@ -10,7 +10,7 @@
         "pageImage": {
             "type": "page",
             "title": "Image",
-            "sections": ["imageconf"]
+            "sections": ["imagesource", "imageresunsplash", "imageresplacekitten", "imagetags", "imageapply"]
         },
         "applet": {
             "type": "section",
@@ -22,10 +22,33 @@
             "title": "Triggers",
             "keys": ["change-onstart", "change-onclick", "change-ontime", "change-time"]
         },
-        "imageconf": {
+        "imagesource": {
             "type": "section",
-            "title": "Image",
-            "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height", "image-tag", "image-tag-info", "image-tag-data", "image-align-info", "image-update-button"]
+            "title": "Source",
+            "keys": ["image-source"]
+        },
+        "imageresunsplash": {
+            "type": "section",
+            "title": "Resolution",
+            "dependency": "image-source=unsplash",
+            "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height"]
+        },
+        "imageresplacekitten": {
+            "type": "section",
+            "title": "Resolution",
+            "dependency": "image-source=placekitten",
+            "keys": ["image-res-manual", "image-res-info", "image-res-width", "image-res-height"]
+        },
+        "imagetags": {
+            "type": "section",
+            "title": "Tags",
+            "dependency": "image-source=unsplash",
+            "keys": ["image-tag", "image-tag-info", "image-tag-data", "image-align-info"]
+        },
+        "imageapply": {
+            "type": "section",
+            "title": "Apply",
+            "keys": ["image-update-button"]
         }
     },
     "applet-icon-animation" : {
@@ -61,6 +84,15 @@
         "units" : "minutes",
         "default" : 15,
         "dependency" : "change-ontime=true"
+    },
+    "image-source" : {
+        "type" : "combobox",
+        "description" : "Image source",
+        "default" : "unsplash",
+        "options" : {
+            "Unsplash" : "unsplash",
+            "Placekitten" : "placekitten"
+        }
     },
     "image-res-manual" : {
         "type" : "switch",

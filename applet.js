@@ -24,6 +24,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this.settings.bind("change-onclick", "change_onclick", this.on_settings_changed);
         this.settings.bind("change-ontime", "change_ontime", this.on_settings_changed);
         this.settings.bind("change-time", "change_time", this.on_settings_changed);
+        this.settings.bind("image-source", "image_source", this.on_settings_changed);
         this.settings.bind("image-res-manual", "image_res_manual", this.on_settings_changed);
         this.settings.bind("image-res-width", "image_res_width", this.on_settings_changed);
         this.settings.bind("image-res-height", "image_res_height", this.on_settings_changed);
@@ -96,17 +97,31 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
 
     _change_background() {
         this._icon_start();
+        let resStr = '';
+        let tagStr = '';
 
+        switch(this.image_source) {
+            case 'placekitten':
+                resStr = '1920/1080';
+                if(this.image_res_manual)
+                    resStr = this.image_res_width + '/' + this.image_res_height;
+                this._download_image('http://placekitten.com/' + resStr);
+            break;
+            case 'unsplash':
+                resStr = 'featured';
+                if(this.image_res_manual)
+                    resStr = this.image_res_width + 'x' + this.image_res_height;
+                if(this.image_tag)
+                    tagStr = '?' + this.image_tag_data;
+                this._download_image('https://source.unsplash.com/' + resStr + '/' + tagStr);
+            break;
+        }
+    }
+
+    _download_image(uri) {
         let gFile = Gio.file_new_for_path(imagePath);
         let fStream = gFile.replace(null, false, Gio.FileCreateFlags.NONE, null);
-        let resStr = 'featured';
-        if(this.image_res_manual)
-            resStr = this.image_res_width + 'x' + this.image_res_height;
-        let tagStr = '';
-        if(this.image_tag)
-            tagStr = '?' + this.image_tag_data;
-        let imageUri = 'https://source.unsplash.com/' + resStr + '/' + tagStr;
-        let request = Soup.Message.new('GET', imageUri);
+        let request = Soup.Message.new('GET', uri);
 
         request.connect('got_chunk', function(message, chunk) {
             if (message.status_code === 200)
@@ -126,7 +141,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                 log('Could not download image!');
             that._icon_stop();
         });
-        log('Downloading ' + imageUri);
+        log('Downloading ' + uri);
     }
 
     _update_tooltip() {
