@@ -1,16 +1,21 @@
 {
     "layout1": {
         "type": "layout",
-        "pages": ["pageBehavior", "pageImage"],
+        "pages": ["pageBehavior", "pageSource", "pageResolution"],
         "pageBehavior": {
             "type": "page",
             "title": "Behavior",
             "sections": ["applet", "changeon"]
         },
-        "pageImage": {
+        "pageSource": {
             "type": "page",
-            "title": "Image",
-            "sections": ["imagesource", "imageresplacecutycapt", "imageresplacekitten", "imagerespicsum", "imageresunsplash", "imageurl", "imagetags", "imageapply"]
+            "title": "Source",
+            "sections": ["imagesource", "imageurl", "imagetags", "imageapply"]
+        },
+        "pageResolution": {
+            "type": "page",
+            "title": "Resolution",
+            "sections": ["imageresbing", "imageresplacecutycapt", "imageresplacekitten", "imagerespicsum", "imageresunsplash", "imageapply"]
         },
         "applet": {
             "type": "section",
@@ -26,6 +31,12 @@
             "type": "section",
             "title": "Source",
             "keys": ["image-source", "install-warn-cutycapt"]
+        },
+        "imageresbing": {
+            "type": "section",
+            "title": "Resolution",
+            "dependency": "image-source=bing",
+            "keys": ["image-res-unsupported"]
         },
         "imageresunsplash": {
             "type": "section",
@@ -156,6 +167,10 @@
         "default" : false,
         "description": "Use own search tags",
         "tooltip": "Specify own tags to look for..."
+    },
+    "image-res-unsupported" : {
+        "type" : "label",
+        "description" : "Sorry, the selected option does not support resulution modifiers."
     },
     "image-tag-info" : {
         "type" : "label",
