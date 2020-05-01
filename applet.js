@@ -25,6 +25,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this.settings.bind("change-onclick", "change_onclick", this.on_settings_changed);
         this.settings.bind("change-ontime", "change_ontime", this.on_settings_changed);
         this.settings.bind("change-time", "change_time", this.on_settings_changed);
+        this.settings.bind("effect-select", "effect_select", this.on_settings_changed);
         this.settings.bind("image-source", "image_source", this.on_settings_changed);
         this.settings.bind("image-res-manual", "image_res_manual", this.on_settings_changed);
         this.settings.bind("image-res-width", "image_res_width", this.on_settings_changed);
@@ -159,6 +160,18 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         var that = this;
         this.httpSession.queue_message(request, function(http, message) {
             fStream.close(null);
+
+            //Now apply any effect (if selected)
+            switch(that.effect_select) {
+                case 'grayscale':
+                    imports.ui.main.Util.spawnCommandLine('mogrify -grayscale average ' + imagePath);
+                break;
+                case 'gaussian-blur':
+                    imports.ui.main.Util.spawnCommandLine('mogrify -gaussian-blur 40 ' + imagePath);
+                break;
+                default:
+                    //Just ignore any invalid option...
+            }
 
             if (message.status_code === 200) {
                 let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});

@@ -1,11 +1,16 @@
 {
     "layout1": {
         "type": "layout",
-        "pages": ["pageBehavior", "pageSource", "pageResolution"],
-        "pageBehavior": {
+        "pages": ["pageBehaviour", "pageEffects", "pageSource", "pageResolution"],
+        "pageBehaviour": {
             "type": "page",
-            "title": "Behavior",
+            "title": "Behaviour",
             "sections": ["applet", "changeon"]
+        },
+        "pageEffects": {
+            "type": "page",
+            "title": "Effects",
+            "sections": ["effects"]
         },
         "pageSource": {
             "type": "page",
@@ -21,6 +26,11 @@
             "type": "section",
             "title": "Applet",
             "keys": ["applet-icon-animation", "applet-show-notification", "applet-info-issues"]
+        },
+        "effects": {
+            "type": "section",
+            "title": "Image effects",
+            "keys": ["effect-note", "effect-select"]
         },
         "changeon": {
             "type": "section",
@@ -123,6 +133,20 @@
         "units" : "minutes",
         "default" : 15,
         "dependency" : "change-ontime=true"
+    },
+    "effect-note" : {
+        "type" : "label",
+        "description" : "Apply here some effects with imagemagick (make sure that package is installed or at least the mogrify command)..."
+    },
+    "effect-select" : {
+        "type" : "combobox",
+        "description" : "Apply effects",
+        "default" : "none",
+        "options" : {
+            "Gaussian blur" : "gaussian-blur",
+            "Grayscale" : "grayscale",
+            "None" : "none"
+        }
     },
     "image-source" : {
         "type" : "combobox",
