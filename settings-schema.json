@@ -10,7 +10,7 @@
         "pageEffects": {
             "type": "page",
             "title": "Effects",
-            "sections": ["effects"]
+            "sections": ["effects", "imageapply"]
         },
         "pageSource": {
             "type": "page",
