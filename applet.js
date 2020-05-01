@@ -20,6 +20,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this.settings = new imports.ui.settings.AppletSettings(this, uuid, instance_id);
 
         this.settings.bind("applet-icon-animation", "applet_icon_animation", this.on_settings_changed);
+        this.settings.bind("applet-show-notification", "applet_show_notification", this.on_settings_changed);
         this.settings.bind("change-onstart", "change_onstart", this.on_settings_changed);
         this.settings.bind("change-onclick", "change_onclick", this.on_settings_changed);
         this.settings.bind("change-ontime", "change_ontime", this.on_settings_changed);
@@ -165,7 +166,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                 Gio.Settings.sync();
                 gSetting.apply();
             } else
-                log('Could not download image!');
+                this._show_notification('Could not download image!');
             that._icon_stop();
         });
         log('Downloading ' + uri);
@@ -186,6 +187,11 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         if(!this.change_ontime && !this.change_onclick)
             tooltipStr += 'No action defined! Please enable at least on in the configuration!';
         this.set_applet_tooltip(_(tooltipStr));
+    }
+
+    _show_notification(text) {
+        if(this.applet_show_notification)
+            imports.ui.main.notify('Better Backgrounds', text);
     }
 
     on_settings_changed() {

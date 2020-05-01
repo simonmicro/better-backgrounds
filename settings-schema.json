@@ -20,7 +20,7 @@
         "applet": {
             "type": "section",
             "title": "Applet",
-            "keys": ["applet-icon-animation"]
+            "keys": ["applet-icon-animation", "applet-show-notification"]
         },
         "changeon": {
             "type": "section",
@@ -85,6 +85,12 @@
         "default" : true,
         "description": "Animate icon while downloading",
         "tooltip": "When a new background is downloaded the icon gets animated..."
+    },
+    "applet-show-notification" : {
+        "type" : "switch",
+        "default" : true,
+        "description": "Show notifications on problems",
+        "tooltip": "Bad network? Faulty setup? The applet will notify you. Every time."
     },
     "change-onstart" : {
         "type" : "switch",
