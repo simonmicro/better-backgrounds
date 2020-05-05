@@ -160,6 +160,7 @@
         "options" : {
             "Bing" : "bing",
             "Cutycapt" : "cutycapt",
+            "Himawari 8" : "himawari",
             "Placekitten" : "placekitten",
             "Picsum Photos" : "picsum",
             "Unsplash" : "unsplash"

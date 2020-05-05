@@ -47,8 +47,8 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this.settings.bind("image-tag-data", "image_tag_data", this.on_settings_changed);
 
         this.set_applet_icon_name("applet");
-        this.httpSession = new Soup.SessionAsync();
-        Soup.Session.prototype.add_feature.call(this.httpSession, new Soup.ProxyResolverDefault());
+        this.httpSyncSession = new Soup.SessionSync();
+        Soup.Session.prototype.add_feature.call(this.httpSyncSession, new Soup.ProxyResolverDefault());
 
         this.on_settings_changed();
 
@@ -116,29 +116,69 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         let resStr = '';
         let tagStr = '';
         let cmdStr = '';
+        let that = this;
 
         switch(this.image_source) {
             case 'cutycapt':
                 if(this.image_res_manual)
                     resStr = ' --min-width=' + this.image_res_width + ' --min-height=' + this.image_res_height;
                 cmdStr = 'cutycapt --out-format=png --url="' + this.image_uri + '" --out="' + imagePath + '"' + resStr;
-                log('Running ' + cmdStr);
-                imports.ui.main.Util.spawnCommandLine(cmdStr);
+                this.run_cmd(cmdStr)
             break;
             case 'bing':
-                let request = Soup.Message.new('GET', 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mbl=1');
-                var that = this;
-                this.httpSession.queue_message(request, function(http, msg) {
-                    if (msg.status_code === 200) {
-                        let jsonData = JSON.parse(msg.response_body.data).images[0];
-                        that.image_copyright = jsonData.title + ' - ' + jsonData.copyright;
-                        that._update_tooltip();
-                        that._download_image('https://www.bing.com' + jsonData.url);
+                log('Downloading bing metadata');
+                {
+                    let request = Soup.Message.new('GET', 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mbl=1');
+                    this.httpSyncSession.send_message(request);
+
+                    if (request.status_code === 200) {
+                        let jsonData = JSON.parse(request.response_body.data).images[0];
+                        this.image_copyright = jsonData.title + ' - ' + jsonData.copyright;
+                        this._update_tooltip();
+                        this._download_image('https://www.bing.com' + jsonData.url);
                     } else
                         that._show_notification('Could not download bing metadata!');
-                    that._icon_stop();
-                });
-                log('Downloading bing metadata');
+                }
+                this._icon_stop();
+            break;
+            case 'himawari':
+                log('Downloading himawari metadata');
+                {
+                    //Download metadata and read latest timestamp
+                    let request = Soup.Message.new('GET', 'https://himawari8-dl.nict.go.jp/himawari8/img/D531106/latest.json');
+                    this.httpSyncSession.send_message(request);
+
+                    if (request.status_code !== 200)
+                        this._show_notification('Could not download himawari metadata!');
+                    else {
+                        let latestDate = new Date(JSON.parse(request.response_body.data).date);
+                        let zoomLvl = 4; //1, 4, 8, 16, 20
+                        let tileNames = Array();
+
+                        //Download all tiles
+                        for(let x = 0; x < zoomLvl; x++) {
+                            for(let y = 0; y < zoomLvl; y++) {
+                                let tileName = appletPath + '/tile_' + x + '_' + y;
+                                this._download_image('https://himawari8-dl.nict.go.jp/himawari8/img/D531106/' +
+                                    zoomLvl + 'd/550/' + latestDate.getFullYear() + '/' + ('0' + latestDate.getMonth()).slice(-2) + 
+                                    '/' + ('0' + latestDate.getDate()).slice(-2) + '/' + ('0' + latestDate.getHours()).slice(-2) +
+                                    ('0' + latestDate.getMinutes()).slice(-2) + ('0' + latestDate.getSeconds()).slice(-2) + '_' +
+                                    y + '_' + x + '.png', tileName);
+                                tileNames.push(tileName);
+                            }
+                        }
+
+                        //Trigger imagemagick to merge the tiles
+                        let cmdStr = 'montage ';
+                        tileNames.forEach((tileName) => {cmdStr += '"' + tileName + '" ';});
+                        cmdStr += '-geometry 550x550+0+0 -tile ' + zoomLvl + 'x' + zoomLvl;
+                        cmdStr += ' "' + imagePath + '"';
+                        this._run_cmd(cmdStr);
+
+                        //Cleanup the tiles from buffer
+                        tileNames.forEach((tileName) => {that._run_cmd('rm -fv "' + tileName + '"');});
+                    }
+                }
             break;
             case 'unsplash':
                 resStr = 'featured';
@@ -161,20 +201,46 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                 this._download_image('https://picsum.photos/' + resStr);
             break;
         }
+        //Apply image...
+        this._apply_image();
         this._update_tooltip();
+    }
+
+    _run_cmd(cmdStr) {
+        log('Running: ' + cmdStr);
+        imports.ui.main.Util.spawnCommandLine(cmdStr);
     }
 
     _store_background() {
         //Copy the background to users picture folder with random name and show the stored notification
         let targetPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES) + '/' + Math.floor(Math.random() * 2048) + '.png';
-        let cmdStr = 'convert "' + imagePath + '" -write "' + targetPath + '"';
-        log('Running: ' + cmdStr);
-        imports.ui.main.Util.spawnCommandLine(cmdStr);
+        this._run_cmd('convert "' + imagePath + '" -write "' + targetPath + '"');
+
         this._show_notification('Image stored to: ' + targetPath);
     }
 
-    _download_image(uri) {
-        let gFile = Gio.file_new_for_path(imagePath);
+    _apply_image() {
+        //Now apply any effect (if selected)
+        switch(this.effect_select) {
+            case 'grayscale':
+                imports.ui.main.Util.spawnCommandLine('mogrify -grayscale average ' + imagePath);
+            break;
+            case 'gaussian-blur':
+                imports.ui.main.Util.spawnCommandLine('mogrify -gaussian-blur 40 ' + imagePath);
+            break;
+            default:
+                //Just ignore any invalid option...
+        }
+
+        //Update gsettings
+        let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});
+        gSetting.set_string('picture-uri', 'file://' + imagePath);
+        Gio.Settings.sync();
+        gSetting.apply();
+    }
+
+    _download_image(uri, targetPath = imagePath) {
+        let gFile = Gio.file_new_for_path(targetPath);
         let fStream = gFile.replace(null, false, Gio.FileCreateFlags.NONE, null);
         let request = Soup.Message.new('GET', uri);
 
@@ -183,32 +249,13 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                 fStream.write(chunk.get_data(), null);
         });
 
-        var that = this;
-        this.httpSession.queue_message(request, function(http, message) {
-            fStream.close(null);
-
-            //Now apply any effect (if selected)
-            switch(that.effect_select) {
-                case 'grayscale':
-                    imports.ui.main.Util.spawnCommandLine('mogrify -grayscale average ' + imagePath);
-                break;
-                case 'gaussian-blur':
-                    imports.ui.main.Util.spawnCommandLine('mogrify -gaussian-blur 40 ' + imagePath);
-                break;
-                default:
-                    //Just ignore any invalid option...
-            }
-
-            if (message.status_code === 200) {
-                let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});
-                gSetting.set_string('picture-uri', 'file://' + imagePath);
-                Gio.Settings.sync();
-                gSetting.apply();
-            } else
-                this._show_notification('Could not download image!');
-            that._icon_stop();
-        });
         log('Downloading ' + uri);
+        this.httpSyncSession.send_message(request);
+
+        fStream.close(null);
+        if (request.status_code !== 200)
+            this._show_notification('Could not download image!');
+        this._icon_stop();
     }
 
     _update_tooltip() {
