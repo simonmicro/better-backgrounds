@@ -112,6 +112,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
 
     _change_background() {
         this._icon_start();
+        this.image_copyright = null;
         let resStr = '';
         let tagStr = '';
         let cmdStr = '';
@@ -128,9 +129,12 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                 let request = Soup.Message.new('GET', 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mbl=1');
                 var that = this;
                 this.httpSession.queue_message(request, function(http, msg) {
-                    if (msg.status_code === 200)
-                        that._download_image('https://www.bing.com' + JSON.parse(msg.response_body.data).images[0].url);
-                    else
+                    if (msg.status_code === 200) {
+                        let jsonData = JSON.parse(msg.response_body.data).images[0];
+                        that.image_copyright = jsonData.title + ' - ' + jsonData.copyright;
+                        that._update_tooltip();
+                        that._download_image('https://www.bing.com' + jsonData.url);
+                    } else
                         that._show_notification('Could not download bing metadata!');
                     that._icon_stop();
                 });
@@ -157,6 +161,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                 this._download_image('https://picsum.photos/' + resStr);
             break;
         }
+        this._update_tooltip();
     }
 
     _store_background() {
@@ -218,6 +223,10 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
             tooltipStr += "\n";
         if(this.change_ontime)
             tooltipStr += 'Every ' + this.change_time + ' minutes the background changes itself';
+        if(this.change_ontime && this.image_copyright !== null)
+            tooltipStr += "\n\n";
+        if(this.image_copyright !== null)
+            tooltipStr += this.image_copyright;
         if(!this.change_ontime && !this.change_onclick)
             tooltipStr += 'No action defined! Please enable at least on in the configuration!';
         this.set_applet_tooltip(_(tooltipStr));

@@ -40,7 +40,7 @@
         "imagesource": {
             "type": "section",
             "title": "Source",
-            "keys": ["image-source", "install-warn-cutycapt"]
+            "keys": ["image-source", "source-supports-info", "install-warn-cutycapt"]
         },
         "imageresbing": {
             "type": "section",
@@ -120,7 +120,7 @@
     },
     "change-onclick-nomenu" : {
         "type" : "label",
-        "description" : "Note that this will disable the menu to store the image - because this will change the background before you've got any chance to click the corresponding button!",
+        "description" : "Note that this will disable the menu on clicking the applet - because clicking will change the background before you've got any chance to press the corresponding button to e.g. save the image!",
         "dependency" : "change-onclick"
     },
     "change-ontime" : {
@@ -164,6 +164,11 @@
             "Picsum Photos" : "picsum",
             "Unsplash" : "unsplash"
         }
+    },
+    "source-supports-info" : {
+        "type" : "label",
+        "description" : "This source supports displaying additional image autor information. It will be shown inside the applets tooltip.",
+        "dependency" : "image-source=bing"
     },
     "install-warn-cutycapt" : {
         "type" : "label",
