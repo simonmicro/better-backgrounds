@@ -123,7 +123,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                 if(this.image_res_manual)
                     resStr = ' --min-width=' + this.image_res_width + ' --min-height=' + this.image_res_height;
                 cmdStr = 'cutycapt --out-format=png --url="' + this.image_uri + '" --out="' + imagePath + '"' + resStr;
-                this.run_cmd(cmdStr)
+                this._run_cmd(cmdStr)
             break;
             case 'bing':
                 log('Downloading bing metadata');
@@ -152,7 +152,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                         this._show_notification('Could not download himawari metadata!');
                     else {
                         let latestDate = new Date(JSON.parse(request.response_body.data).date);
-                        let zoomLvl = 4; //1, 4, 8, 16, 20
+                        let zoomLvl = 1; //1, 4, 8, 16, 20
                         let tileNames = Array();
 
                         //Download all tiles
