@@ -8,7 +8,6 @@ const PopupMenu = imports.ui.popupMenu;
 
 const uuid = "better-backgrounds@simonmicro";
 const appletPath = AppletManager.appletMeta[uuid].path;
-const imagePath = appletPath + '/background';
 
 function log(msg) {
     global.log('[' + uuid + '] ' + msg);
@@ -50,6 +49,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         this.set_applet_icon_name("applet");
         this.httpAsyncSession = new Soup.SessionAsync();
         Soup.Session.prototype.add_feature.call(this.httpAsyncSession, new Soup.ProxyResolverDefault());
+        this.swapChainSwapped = false;
 
         this.on_settings_changed();
 
@@ -121,7 +121,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         };
 
         if(this.image_source == 'cutycapt') {
-            let cmd = ['cutycapt', '--out-format=png', '--url=' + this.image_uri, '--out=' + imagePath];
+            let cmd = ['cutycapt', '--out-format=png', '--url=' + this.image_uri, '--out=' + this._get_swap_chain_image_next()];
             if(this.image_res_manual) {
                 cmd.push('--min-width=' + this.image_res_width);
                 cmd.push('--min-height=' + this.image_res_height);
@@ -172,12 +172,12 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                                 Array.prototype.push.apply(cmd, tileNames);
                                 cmd.push('-geometry', '550x550+0+0');
                                 cmd.push('-tile', zoomLvl + 'x' + zoomLvl);
-                                cmd.push(imagePath);
+                                cmd.push(that._get_swap_chain_image_next());
                                 that._run_cmd(cmd).then(function() {
                                     //Cleanup the tiles from buffer
                                     let rmCmd = ['rm', '-f'];
                                     Array.prototype.push.apply(rmCmd, tileNames);
-                                    that._run_cmd(rmCmd).then(function() {log('done')});
+                                    that._run_cmd(rmCmd);
 
                                     //And update the tooltip
                                     that._update_tooltip('The Earth by Himawari 8 from ' + latestDate.toISOString());
@@ -237,31 +237,50 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         //Copy the background to users picture folder with random name and show the stored notification
         let targetPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES) + '/' + Math.floor(Math.random() * 2048) + '.png';
         var that = this;
-        this._run_cmd(['convert', imagePath, '-write', targetPath]).then(function() {
+        this._run_cmd(['convert', this._get_swap_chain_image_current(), '-write', targetPath]).then(function() {
             that._show_notification('Image stored to: ' + targetPath);
         });
     }
 
+    _get_swap_chain_image_next() {
+        return this._get_swap_chain_base() + '/next';
+    }
+
+    _get_swap_chain_image_current() {
+        return this._get_swap_chain_base() + '/background';
+    }
+
+    _get_swap_chain_base() {
+        return appletPath;
+    }
+
+    _swap_chain_image_swap() {
+        //Replace current with next
+        this._run_cmd(['mv', this._get_swap_chain_image_next(), this._get_swap_chain_image_current()]);
+    }
+
     _apply_image() {
+        var that = this;
         function update() {
             //Update gsettings
+            that._swap_chain_image_swap();
             let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});
-            gSetting.set_string('picture-uri', 'file://' + imagePath);
+            gSetting.set_string('picture-uri', 'file://' + that._get_swap_chain_image_current());
             Gio.Settings.sync();
             gSetting.apply();
         }
 
         //Now apply any effect (if selected)
         if(this.effect_select == 'grayscale') {
-            this._run_cmd(['mogrify', '-grayscale', 'average', imagePath]).then(update);
+            this._run_cmd(['mogrify', '-grayscale', 'average', this._get_swap_chain_image_next()]).then(update);
         } else if(this.effect_select == 'gaussian-blur') {
-            this._run_cmd(['mogrify', '-gaussian-blur', '40', imagePath]).then(update);
+            this._run_cmd(['mogrify', '-gaussian-blur', '40', this._get_swap_chain_image_next()]).then(update);
         } else
             //Just ignore any invalid option...
             update();
     }
 
-    _download_image(uri, targetPath = imagePath) {
+    _download_image(uri, targetPath = this._get_swap_chain_image_next()) {
         log('Downloading image ' + uri);
         let gFile = Gio.file_new_for_path(targetPath);
         let fStream = gFile.replace(null, false, Gio.FileCreateFlags.NONE, null);
