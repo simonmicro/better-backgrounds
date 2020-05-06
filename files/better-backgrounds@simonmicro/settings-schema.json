@@ -114,7 +114,7 @@
     },
     "change-onclick" : {
         "type" : "switch",
-        "default" : true,
+        "default" : false,
         "description": "Clicking on the applet",
         "tooltip": "Just click onto the icon in your panel"
     },
