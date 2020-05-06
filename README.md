@@ -3,6 +3,7 @@
 ![repo-size](https://img.shields.io/github/repo-size/simonmicro/better-backgrounds)
 ![issue-count](https://img.shields.io/github/issues/simonmicro/better-backgrounds)
 ![latest-commit](https://img.shields.io/github/last-commit/simonmicro/better-backgrounds)
+![license](https://img.shields.io/github/license/simonmicro/better-backgrounds)
 
 A Cinnamon desktop applet to change your wallpaper to random images from many sources.
 
