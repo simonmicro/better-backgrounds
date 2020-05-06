@@ -177,6 +177,9 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                                     //Cleanup the tiles from buffer
                                     that._run_cmd('rm -f ' + fileStr);
 
+                                    //And update the tooltip
+                                    that._update_tooltip('The Earth by Himawari 8 from ' + latestDate.toISOString());
+
                                     //Remove the progress label
                                     that.set_applet_label('');
 
