@@ -114,7 +114,8 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this._icon_start();
         this.image_copyright = null;
         let that = this;
-        let defaultEnd = function() {
+        function defaultEnd() {
+            that._apply_image();
             that._icon_stop();
         };
 
@@ -139,42 +140,52 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
             });
         } else if(this.image_source == 'himawari') {
             log('Downloading himawari metadata');
-/*                {
-                //Download metadata and read latest timestamp
-                let request = Soup.Message.new('GET', 'https://himawari8-dl.nict.go.jp/himawari8/img/D531106/latest.json');
-                this.httpSyncSession.send_message(request);
-
-                if (request.status_code !== 200)
-                    this._show_notification('Could not download himawari metadata!');
+            //Download metadata and read latest timestamp
+            let request = Soup.Message.new('GET', 'https://himawari8-dl.nict.go.jp/himawari8/img/D531106/latest.json');
+            this.httpAsyncSession.queue_message(request, function(http, msg) {
+                if (msg.status_code !== 200)
+                    that._show_notification('Could not download himawari metadata!');
                 else {
                     let latestDate = new Date(JSON.parse(request.response_body.data).date);
-                    let zoomLvl = 1; //1, 4, 8, 16, 20
+                    let zoomLvl = 8; //1, 4, 8, 16, 20
                     let tileNames = Array();
+                    var tileId = 0;
 
-                    //Download all tiles
-                    for(let x = 0; x < zoomLvl; x++) {
-                        for(let y = 0; y < zoomLvl; y++) {
-                            let tileName = appletPath + '/tile_' + x + '_' + y;
-                            this._download_image('https://himawari8-dl.nict.go.jp/himawari8/img/D531106/' +
-                                zoomLvl + 'd/550/' + latestDate.getFullYear() + '/' + ('0' + latestDate.getMonth()).slice(-2) + 
-                                '/' + ('0' + latestDate.getDate()).slice(-2) + '/' + ('0' + latestDate.getHours()).slice(-2) +
-                                ('0' + latestDate.getMinutes()).slice(-2) + ('0' + latestDate.getSeconds()).slice(-2) + '_' +
-                                y + '_' + x + '.png', tileName);
-                            tileNames.push(tileName);
-                        }
+                    function downloadTiles() {
+                        //Download the tile and call ourself again
+                        let y = tileId % zoomLvl;
+                        let x = Math.floor(tileId / zoomLvl);
+                        let tileName = appletPath + '/tile_' + x + '_' + y;
+                        tileNames.push(tileName);
+                        tileId++;
+                        that._download_image('https://himawari8-dl.nict.go.jp/himawari8/img/D531106/' +
+                            zoomLvl + 'd/550/' + latestDate.getFullYear() + '/' + ('0' + latestDate.getMonth()).slice(-2) + 
+                            '/' + ('0' + latestDate.getDate()).slice(-2) + '/' + ('0' + latestDate.getHours()).slice(-2) +
+                            ('0' + latestDate.getMinutes()).slice(-2) + ('0' + latestDate.getSeconds()).slice(-2) + '_' +
+                            y + '_' + x + '.png', tileName)
+                        .then(function() {
+                            //tileId == zoomLvl * zoomLvl -> we have all tiles -> proceed
+                            if(tileId == zoomLvl * zoomLvl) {
+                                //Trigger imagemagick to merge the tiles
+                                let cmdStr = 'montage ';
+                                tileNames.forEach((tileName) => {cmdStr += '"' + tileName + '" ';});
+                                cmdStr += '-geometry 550x550+0+0 -tile ' + zoomLvl + 'x' + zoomLvl;
+                                cmdStr += ' "' + imagePath + '"';
+                                that._run_cmd(cmdStr);
+
+                                //Cleanup the tiles from buffer
+                                tileNames.forEach((tileName) => {that._run_cmd('rm -fv "' + tileName + '"');});
+
+                                //And apply new image
+                                defaultEnd();
+                            } else
+                            //Not? Recall!
+                                downloadTiles();
+                        });
                     }
-
-                    //Trigger imagemagick to merge the tiles
-                    let cmdStr = 'montage ';
-                    tileNames.forEach((tileName) => {cmdStr += '"' + tileName + '" ';});
-                    cmdStr += '-geometry 550x550+0+0 -tile ' + zoomLvl + 'x' + zoomLvl;
-                    cmdStr += ' "' + imagePath + '"';
-                    this._run_cmd(cmdStr);
-
-                    //Cleanup the tiles from buffer
-                    tileNames.forEach((tileName) => {that._run_cmd('rm -fv "' + tileName + '"');});
+                    downloadTiles();
                 }
-            }*/
+            });
         } else if(this.image_source == 'unsplash') {
             let resStr = 'featured';
             if(this.image_res_manual)
