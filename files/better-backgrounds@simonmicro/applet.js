@@ -47,8 +47,8 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this.settings.bind("image-tag-data", "image_tag_data", this.on_settings_changed);
 
         this.set_applet_icon_name("applet");
-        this.httpSyncSession = new Soup.SessionSync();
-        Soup.Session.prototype.add_feature.call(this.httpSyncSession, new Soup.ProxyResolverDefault());
+        this.httpAsyncSession = new Soup.SessionAsync();
+        Soup.Session.prototype.add_feature.call(this.httpAsyncSession, new Soup.ProxyResolverDefault());
 
         this.on_settings_changed();
 
@@ -113,97 +113,87 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
     _change_background() {
         this._icon_start();
         this.image_copyright = null;
-        let resStr = '';
-        let tagStr = '';
-        let cmdStr = '';
         let that = this;
+        let defaultEnd = function() {
+            that._icon_stop();
+        };
 
-        switch(this.image_source) {
-            case 'cutycapt':
-                if(this.image_res_manual)
-                    resStr = ' --min-width=' + this.image_res_width + ' --min-height=' + this.image_res_height;
-                cmdStr = 'cutycapt --out-format=png --url="' + this.image_uri + '" --out="' + imagePath + '"' + resStr;
-                this._run_cmd(cmdStr)
-            break;
-            case 'bing':
-                log('Downloading bing metadata');
-                {
-                    let request = Soup.Message.new('GET', 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mbl=1');
-                    this.httpSyncSession.send_message(request);
+        if(this.image_source == 'cutycapt') {
+            let resStr = '';
+            if(this.image_res_manual)
+                resStr = ' --min-width=' + this.image_res_width + ' --min-height=' + this.image_res_height;
+            let cmdStr = 'cutycapt --out-format=png --url="' + this.image_uri + '" --out="' + imagePath + '"' + resStr;
+            this._run_cmd(cmdStr);
+            defaultEnd();
+        } else if(this.image_source == 'bing') {
+            log('Downloading bing metadata');
+            let request = Soup.Message.new('GET', 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mbl=1');
+            this.httpAsyncSession.queue_message(request, function(http, msg) {
+                if (msg.status_code === 200) {
+                    let jsonData = JSON.parse(msg.response_body.data).images[0];
+                    that.image_copyright = jsonData.title + ' - ' + jsonData.copyright;
+                    that._update_tooltip();
+                    that._download_image('https://www.bing.com' + jsonData.url).then(defaultEnd);
+                } else
+                    that._show_notification('Could not download bing metadata!');
+            });
+        } else if(this.image_source == 'himawari') {
+            log('Downloading himawari metadata');
+/*                {
+                //Download metadata and read latest timestamp
+                let request = Soup.Message.new('GET', 'https://himawari8-dl.nict.go.jp/himawari8/img/D531106/latest.json');
+                this.httpSyncSession.send_message(request);
 
-                    if (request.status_code === 200) {
-                        let jsonData = JSON.parse(request.response_body.data).images[0];
-                        this.image_copyright = jsonData.title + ' - ' + jsonData.copyright;
-                        this._update_tooltip();
-                        this._download_image('https://www.bing.com' + jsonData.url);
-                    } else
-                        that._show_notification('Could not download bing metadata!');
-                }
-                this._icon_stop();
-            break;
-            case 'himawari':
-                log('Downloading himawari metadata');
-                {
-                    //Download metadata and read latest timestamp
-                    let request = Soup.Message.new('GET', 'https://himawari8-dl.nict.go.jp/himawari8/img/D531106/latest.json');
-                    this.httpSyncSession.send_message(request);
+                if (request.status_code !== 200)
+                    this._show_notification('Could not download himawari metadata!');
+                else {
+                    let latestDate = new Date(JSON.parse(request.response_body.data).date);
+                    let zoomLvl = 1; //1, 4, 8, 16, 20
+                    let tileNames = Array();
 
-                    if (request.status_code !== 200)
-                        this._show_notification('Could not download himawari metadata!');
-                    else {
-                        let latestDate = new Date(JSON.parse(request.response_body.data).date);
-                        let zoomLvl = 1; //1, 4, 8, 16, 20
-                        let tileNames = Array();
-
-                        //Download all tiles
-                        for(let x = 0; x < zoomLvl; x++) {
-                            for(let y = 0; y < zoomLvl; y++) {
-                                let tileName = appletPath + '/tile_' + x + '_' + y;
-                                this._download_image('https://himawari8-dl.nict.go.jp/himawari8/img/D531106/' +
-                                    zoomLvl + 'd/550/' + latestDate.getFullYear() + '/' + ('0' + latestDate.getMonth()).slice(-2) + 
-                                    '/' + ('0' + latestDate.getDate()).slice(-2) + '/' + ('0' + latestDate.getHours()).slice(-2) +
-                                    ('0' + latestDate.getMinutes()).slice(-2) + ('0' + latestDate.getSeconds()).slice(-2) + '_' +
-                                    y + '_' + x + '.png', tileName);
-                                tileNames.push(tileName);
-                            }
+                    //Download all tiles
+                    for(let x = 0; x < zoomLvl; x++) {
+                        for(let y = 0; y < zoomLvl; y++) {
+                            let tileName = appletPath + '/tile_' + x + '_' + y;
+                            this._download_image('https://himawari8-dl.nict.go.jp/himawari8/img/D531106/' +
+                                zoomLvl + 'd/550/' + latestDate.getFullYear() + '/' + ('0' + latestDate.getMonth()).slice(-2) + 
+                                '/' + ('0' + latestDate.getDate()).slice(-2) + '/' + ('0' + latestDate.getHours()).slice(-2) +
+                                ('0' + latestDate.getMinutes()).slice(-2) + ('0' + latestDate.getSeconds()).slice(-2) + '_' +
+                                y + '_' + x + '.png', tileName);
+                            tileNames.push(tileName);
                         }
-
-                        //Trigger imagemagick to merge the tiles
-                        let cmdStr = 'montage ';
-                        tileNames.forEach((tileName) => {cmdStr += '"' + tileName + '" ';});
-                        cmdStr += '-geometry 550x550+0+0 -tile ' + zoomLvl + 'x' + zoomLvl;
-                        cmdStr += ' "' + imagePath + '"';
-                        this._run_cmd(cmdStr);
-
-                        //Cleanup the tiles from buffer
-                        tileNames.forEach((tileName) => {that._run_cmd('rm -fv "' + tileName + '"');});
                     }
+
+                    //Trigger imagemagick to merge the tiles
+                    let cmdStr = 'montage ';
+                    tileNames.forEach((tileName) => {cmdStr += '"' + tileName + '" ';});
+                    cmdStr += '-geometry 550x550+0+0 -tile ' + zoomLvl + 'x' + zoomLvl;
+                    cmdStr += ' "' + imagePath + '"';
+                    this._run_cmd(cmdStr);
+
+                    //Cleanup the tiles from buffer
+                    tileNames.forEach((tileName) => {that._run_cmd('rm -fv "' + tileName + '"');});
                 }
-            break;
-            case 'unsplash':
-                resStr = 'featured';
-                if(this.image_res_manual)
-                    resStr = this.image_res_width + 'x' + this.image_res_height;
-                if(this.image_tag)
-                    tagStr = '?' + this.image_tag_data;
-                this._download_image('https://source.unsplash.com/' + resStr + '/' + tagStr);
-            break;
-            case 'placekitten':
-                resStr = '1920/1080';
-                if(this.image_res_manual)
-                    resStr = this.image_res_width + '/' + this.image_res_height;
-                this._download_image('http://placekitten.com/' + resStr);
-            break;
-            case 'picsum':
-                resStr = '1920/1080';
-                if(this.image_res_manual)
-                    resStr = this.image_res_width + '/' + this.image_res_height;
-                this._download_image('https://picsum.photos/' + resStr);
-            break;
+            }*/
+        } else if(this.image_source == 'unsplash') {
+            let resStr = 'featured';
+            if(this.image_res_manual)
+                resStr = this.image_res_width + 'x' + this.image_res_height;
+            let tagStr = '';
+            if(this.image_tag)
+                tagStr = '?' + this.image_tag_data;
+            this._download_image('https://source.unsplash.com/' + resStr + '/' + tagStr).then(defaultEnd);
+        } else if(this.image_source == 'placekitten') {
+            let resStr = '1920/1080';
+            if(this.image_res_manual)
+                resStr = this.image_res_width + '/' + this.image_res_height;
+            this._download_image('http://placekitten.com/' + resStr).then(defaultEnd);
+        } else if(this.image_source == 'picsum') {
+            let resStr = '1920/1080';
+            if(this.image_res_manual)
+                resStr = this.image_res_width + '/' + this.image_res_height;
+            this._download_image('https://picsum.photos/' + resStr).then(defaultEnd);
         }
-        //Apply image...
-        this._apply_image();
-        this._update_tooltip();
     }
 
     _run_cmd(cmdStr) {
@@ -240,22 +230,27 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
     }
 
     _download_image(uri, targetPath = imagePath) {
+        log('Downloading image ' + uri);
         let gFile = Gio.file_new_for_path(targetPath);
         let fStream = gFile.replace(null, false, Gio.FileCreateFlags.NONE, null);
         let request = Soup.Message.new('GET', uri);
+        let that = this;
 
         request.connect('got_chunk', function(message, chunk) {
             if (message.status_code === 200)
                 fStream.write(chunk.get_data(), null);
         });
 
-        log('Downloading ' + uri);
-        this.httpSyncSession.send_message(request);
-
-        fStream.close(null);
-        if (request.status_code !== 200)
-            this._show_notification('Could not download image!');
-        this._icon_stop();
+        return new Promise(function(resolve, reject) {
+            that.httpAsyncSession.queue_message(request, function(http, msg) {
+                fStream.close(null);
+                if (msg.status_code !== 200) {
+                    that._show_notification('Could not download image!');
+                    reject();
+                }
+                resolve();
+            });
+        });
     }
 
     _update_tooltip() {
