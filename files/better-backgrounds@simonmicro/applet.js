@@ -14,7 +14,7 @@ function log(msg) {
     global.log('[' + uuid + '] ' + msg);
 };
 
-class UnsplashBackgroundApplet extends Applet.IconApplet {
+class UnsplashBackgroundApplet extends Applet.TextIconApplet {
     constructor(orientation, panel_height, instance_id) {
         super(orientation, panel_height, instance_id);
 
@@ -113,7 +113,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
 
     _change_background() {
         this._icon_start();
-        this.image_copyright = null;
+        this._update_tooltip();
         let that = this;
         function defaultEnd() {
             that._apply_image();
@@ -133,8 +133,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
             this.httpAsyncSession.queue_message(request, function(http, msg) {
                 if (msg.status_code === 200) {
                     let jsonData = JSON.parse(msg.response_body.data).images[0];
-                    that.image_copyright = jsonData.title + ' - ' + jsonData.copyright;
-                    that._update_tooltip();
+                    that._update_tooltip(jsonData.title + ' - ' + jsonData.copyright);
                     that._download_image('https://www.bing.com' + jsonData.url).then(defaultEnd);
                 } else
                     that._show_notification('Could not download bing metadata!');
@@ -159,6 +158,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                         let tileName = appletPath + '/tile_' + x + '_' + y;
                         tileNames.push(tileName);
                         tileId++;
+                        that.set_applet_label(Math.floor(tileId / (zoomLvl * zoomLvl) * 100) + '%');
                         that._download_image('https://himawari8-dl.nict.go.jp/himawari8/img/D531106/' +
                             zoomLvl + 'd/550/' + latestDate.getFullYear() + '/' + ('0' + latestDate.getMonth()).slice(-2) + 
                             '/' + ('0' + latestDate.getDate()).slice(-2) + '/' + ('0' + latestDate.getHours()).slice(-2) +
@@ -177,12 +177,16 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                                     //Cleanup the tiles from buffer
                                     that._run_cmd('rm -f ' + fileStr);
 
+                                    //Remove the progress label
+                                    that.set_applet_label('');
+
                                     //And apply new image
                                     defaultEnd();
                                 });
-                            } else
-                            //Not? Recall!
+                            } else {
+                                //Not? Recall!
                                 downloadTiles();
+                            }
                         });
                     }
                     downloadTiles();
@@ -274,7 +278,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         });
     }
 
-    _update_tooltip() {
+    _update_tooltip(more = null) {
         let tooltipStr = '';
         if(this.change_onstart)
             tooltipStr += 'Background changed on last startup';
@@ -288,8 +292,8 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
             tooltipStr += 'Every ' + this.change_time + ' minutes the background changes itself';
         if(!this.change_ontime && !this.change_onclick)
             tooltipStr += 'No action defined! Please enable at least one in the configuration!';
-        if(this.image_copyright !== null)
-            tooltipStr += "\n\n" + this.image_copyright;
+        if(more !== null)
+            tooltipStr += "\n\n" + more;
         this.set_applet_tooltip(_(tooltipStr));
     }
 
