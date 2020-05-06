@@ -42,6 +42,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
         this.settings.bind("image-res-manual", "image_res_manual", this.on_settings_changed);
         this.settings.bind("image-res-width", "image_res_width", this.on_settings_changed);
         this.settings.bind("image-res-height", "image_res_height", this.on_settings_changed);
+        this.settings.bind("image-res-himawari", "image_res_himawari", this.on_settings_changed);
         this.settings.bind("image-uri", "image_uri", this.on_settings_changed);
         this.settings.bind("image-tag", "image_tag", this.on_settings_changed);
         this.settings.bind("image-tag-data", "image_tag_data", this.on_settings_changed);
@@ -147,7 +148,7 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                     that._show_notification('Could not download himawari metadata!');
                 else {
                     let latestDate = new Date(JSON.parse(request.response_body.data).date);
-                    let zoomLvl = 8; //1, 4, 8, 16, 20
+                    let zoomLvl = that.image_res_himawari;
                     let tileNames = Array();
                     var tileId = 0;
 
@@ -167,17 +168,18 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
                             //tileId == zoomLvl * zoomLvl -> we have all tiles -> proceed
                             if(tileId == zoomLvl * zoomLvl) {
                                 //Trigger imagemagick to merge the tiles
-                                let cmdStr = 'montage ';
-                                tileNames.forEach((tileName) => {cmdStr += '"' + tileName + '" ';});
+                                let fileStr = '';
+                                tileNames.forEach((tileName) => {fileStr += '"' + tileName + '" ';});
+                                let cmdStr = 'montage ' + fileStr;
                                 cmdStr += '-geometry 550x550+0+0 -tile ' + zoomLvl + 'x' + zoomLvl;
                                 cmdStr += ' "' + imagePath + '"';
-                                that._run_cmd(cmdStr);
+                                that._run_cmd(cmdStr).then(function() {
+                                    //Cleanup the tiles from buffer
+                                    that._run_cmd('rm -f ' + fileStr);
 
-                                //Cleanup the tiles from buffer
-                                tileNames.forEach((tileName) => {that._run_cmd('rm -fv "' + tileName + '"');});
-
-                                //And apply new image
-                                defaultEnd();
+                                    //And apply new image
+                                    defaultEnd();
+                                });
                             } else
                             //Not? Recall!
                                 downloadTiles();
@@ -208,36 +210,44 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
     }
 
     _run_cmd(cmdStr) {
-        log('Running: ' + cmdStr);
-        imports.ui.main.Util.spawnCommandLine(cmdStr);
+        return new Promise(function(resolve, reject) {
+            try {
+                log('Running: ' + cmdStr);
+                GLib.spawn_command_line_sync(cmdStr, null, null, null, null);
+                resolve();
+            } catch (e) {
+                log('Execution failure: ' + e);
+                reject(e);
+            }
+        });
     }
 
     _store_background() {
         //Copy the background to users picture folder with random name and show the stored notification
         let targetPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES) + '/' + Math.floor(Math.random() * 2048) + '.png';
-        this._run_cmd('convert "' + imagePath + '" -write "' + targetPath + '"');
-
-        this._show_notification('Image stored to: ' + targetPath);
+        var that = this;
+        this._run_cmd('convert "' + imagePath + '" -write "' + targetPath + '"').then(function() {
+            that._show_notification('Image stored to: ' + targetPath);
+        });
     }
 
     _apply_image() {
-        //Now apply any effect (if selected)
-        switch(this.effect_select) {
-            case 'grayscale':
-                imports.ui.main.Util.spawnCommandLine('mogrify -grayscale average ' + imagePath);
-            break;
-            case 'gaussian-blur':
-                imports.ui.main.Util.spawnCommandLine('mogrify -gaussian-blur 40 ' + imagePath);
-            break;
-            default:
-                //Just ignore any invalid option...
+        function update() {
+            //Update gsettings
+            let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});
+            gSetting.set_string('picture-uri', 'file://' + imagePath);
+            Gio.Settings.sync();
+            gSetting.apply();
         }
 
-        //Update gsettings
-        let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});
-        gSetting.set_string('picture-uri', 'file://' + imagePath);
-        Gio.Settings.sync();
-        gSetting.apply();
+        //Now apply any effect (if selected)
+        if(this.effect_select == 'grayscale') {
+            this._run_cmd('mogrify -grayscale average ' + imagePath).then(update);
+        } else if(this.effect_select == 'gaussian-blur') {
+            this._run_cmd('mogrify -gaussian-blur 40 ' + imagePath).then(update);
+        } else
+            //Just ignore any invalid option...
+            update();
     }
 
     _download_image(uri, targetPath = imagePath) {
@@ -276,12 +286,10 @@ class UnsplashBackgroundApplet extends Applet.IconApplet {
             tooltipStr += "\n";
         if(this.change_ontime)
             tooltipStr += 'Every ' + this.change_time + ' minutes the background changes itself';
-        if(this.change_ontime && this.image_copyright !== null)
-            tooltipStr += "\n\n";
-        if(this.image_copyright !== null)
-            tooltipStr += this.image_copyright;
         if(!this.change_ontime && !this.change_onclick)
-            tooltipStr += 'No action defined! Please enable at least on in the configuration!';
+            tooltipStr += 'No action defined! Please enable at least one in the configuration!';
+        if(this.image_copyright !== null)
+            tooltipStr += "\n\n" + this.image_copyright;
         this.set_applet_tooltip(_(tooltipStr));
     }
 
