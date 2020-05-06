@@ -116,8 +116,9 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         this._update_tooltip();
         let that = this;
         function defaultEnd() {
-            that._apply_image();
-            that._icon_stop();
+            that._apply_image().then(function() {
+                that._icon_stop();
+            });
         };
 
         if(this.image_source == 'cutycapt') {
@@ -261,23 +262,26 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
 
     _apply_image() {
         var that = this;
-        function update() {
-            //Update gsettings
-            that._swap_chain_image_swap();
-            let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});
-            gSetting.set_string('picture-uri', 'file://' + that._get_swap_chain_image_current());
-            Gio.Settings.sync();
-            gSetting.apply();
-        }
+        return new Promise(function(resolve, reject) {
+            function update() {
+                //Update gsettings
+                that._swap_chain_image_swap();
+                let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});
+                gSetting.set_string('picture-uri', 'file://' + that._get_swap_chain_image_current());
+                Gio.Settings.sync();
+                gSetting.apply();
+                resolve();
+            }
 
-        //Now apply any effect (if selected)
-        if(this.effect_select == 'grayscale') {
-            this._run_cmd(['mogrify', '-grayscale', 'average', this._get_swap_chain_image_next()]).then(update);
-        } else if(this.effect_select == 'gaussian-blur') {
-            this._run_cmd(['mogrify', '-gaussian-blur', '40', this._get_swap_chain_image_next()]).then(update);
-        } else
-            //Just ignore any invalid option...
-            update();
+            //Now apply any effect (if selected)
+            if(that.effect_select == 'grayscale') {
+                that._run_cmd(['mogrify', '-grayscale', 'average', that._get_swap_chain_image_next()]).then(update);
+            } else if(that.effect_select == 'gaussian-blur') {
+                that._run_cmd(['mogrify', '-gaussian-blur', '40', that._get_swap_chain_image_next()]).then(update);
+            } else
+                //Just ignore any invalid option...
+                update();
+        });
     }
 
     _download_image(uri, targetPath = this._get_swap_chain_image_next()) {
