@@ -121,12 +121,12 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         };
 
         if(this.image_source == 'cutycapt') {
-            let resStr = '';
-            if(this.image_res_manual)
-                resStr = ' --min-width=' + this.image_res_width + ' --min-height=' + this.image_res_height;
-            let cmdStr = 'cutycapt --out-format=png --url="' + this.image_uri + '" --out="' + imagePath + '"' + resStr;
-            this._run_cmd(cmdStr);
-            defaultEnd();
+            let cmd = ['cutycapt', '--out-format=png', '--url=' + this.image_uri, '--out=' + imagePath];
+            if(this.image_res_manual) {
+                cmd.push('--min-width=' + this.image_res_width);
+                cmd.push('--min-height=' + this.image_res_height);
+            }
+            this._run_cmd(cmd).then(defaultEnd);
         } else if(this.image_source == 'bing') {
             log('Downloading bing metadata');
             let request = Soup.Message.new('GET', 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mbl=1');
@@ -155,7 +155,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                         //Download the tile and call ourself again
                         let y = tileId % zoomLvl;
                         let x = Math.floor(tileId / zoomLvl);
-                        let tileName = appletPath + '/tile_' + x + '_' + y;
+                        let tileName = appletPath + '/tile_' + x + '_' + y + '.png';
                         tileNames.push(tileName);
                         tileId++;
                         that.set_applet_label(Math.floor(tileId / (zoomLvl * zoomLvl) * 100) + '%');
@@ -168,14 +168,16 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                             //tileId == zoomLvl * zoomLvl -> we have all tiles -> proceed
                             if(tileId == zoomLvl * zoomLvl) {
                                 //Trigger imagemagick to merge the tiles
-                                let fileStr = '';
-                                tileNames.forEach((tileName) => {fileStr += '"' + tileName + '" ';});
-                                let cmdStr = 'montage ' + fileStr;
-                                cmdStr += '-geometry 550x550+0+0 -tile ' + zoomLvl + 'x' + zoomLvl;
-                                cmdStr += ' "' + imagePath + '"';
-                                that._run_cmd(cmdStr).then(function() {
+                                let cmd = ['montage'];
+                                Array.prototype.push.apply(cmd, tileNames);
+                                cmd.push('-geometry', '550x550+0+0');
+                                cmd.push('-tile', zoomLvl + 'x' + zoomLvl);
+                                cmd.push(imagePath);
+                                that._run_cmd(cmd).then(function() {
                                     //Cleanup the tiles from buffer
-                                    that._run_cmd('rm -f ' + fileStr);
+                                    let rmCmd = ['rm', '-f'];
+                                    Array.prototype.push.apply(rmCmd, tileNames);
+                                    that._run_cmd(rmCmd).then(function() {log('done')});
 
                                     //And update the tooltip
                                     that._update_tooltip('The Earth by Himawari 8 from ' + latestDate.toISOString());
@@ -216,12 +218,14 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         }
     }
 
-    _run_cmd(cmdStr) {
+    _run_cmd(cmd) {
         return new Promise(function(resolve, reject) {
             try {
-                log('Running: ' + cmdStr);
-                GLib.spawn_command_line_sync(cmdStr, null, null, null, null);
-                resolve();
+                log('Running: ' + cmd.join(' '));
+                let pid = GLib.spawn_async(null, cmd, null, GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD, null, null)[1];
+                GLib.child_watch_add(GLib.PRIORITY_DEFAULT_IDLE, pid, function test() {
+                    GLib.spawn_close_pid(pid); resolve();
+                });
             } catch (e) {
                 log('Execution failure: ' + e);
                 reject(e);
@@ -233,7 +237,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         //Copy the background to users picture folder with random name and show the stored notification
         let targetPath = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES) + '/' + Math.floor(Math.random() * 2048) + '.png';
         var that = this;
-        this._run_cmd('convert "' + imagePath + '" -write "' + targetPath + '"').then(function() {
+        this._run_cmd(['convert', imagePath, '-write', targetPath]).then(function() {
             that._show_notification('Image stored to: ' + targetPath);
         });
     }
@@ -249,9 +253,9 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
 
         //Now apply any effect (if selected)
         if(this.effect_select == 'grayscale') {
-            this._run_cmd('mogrify -grayscale average ' + imagePath).then(update);
+            this._run_cmd(['mogrify', '-grayscale', 'average', imagePath]).then(update);
         } else if(this.effect_select == 'gaussian-blur') {
-            this._run_cmd('mogrify -gaussian-blur 40 ' + imagePath).then(update);
+            this._run_cmd(['mogrify', '-gaussian-blur', '40', imagePath]).then(update);
         } else
             //Just ignore any invalid option...
             update();
