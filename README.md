@@ -5,7 +5,7 @@
 ![latest-commit](https://img.shields.io/github/last-commit/simonmicro/better-backgrounds)
 ![license](https://img.shields.io/github/license/simonmicro/better-backgrounds)
 
-A Cinnamon desktop applet to change your wallpaper to random images from many sources.
+A Cinnamon desktop applet to change your wallpaper to random images from many customizable sources and also some effects from ImageMagick.
 
 ## Currently supported sources ##
 
