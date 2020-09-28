@@ -16,6 +16,9 @@ A Cinnamon desktop applet to change your wallpaper to random images from many cu
 * [Unsplash](https://unsplash.com/) (random photos with tags)
 * Websites (page is rendered as screenshot by [cutycapt](http://cutycapt.sourceforge.net/))
 
+## Known issues ##
+* The icon animation needs much CPU power (up to one core), see [here](https://github.com/Simonmicro/better-backgrounds/issues/13#issuecomment-700317345)
+
 ### Icon note ###
 
 The icon has been merged from the following Pixabay images:
