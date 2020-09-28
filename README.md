@@ -9,8 +9,8 @@ A Cinnamon desktop applet to change your wallpaper to random images from many cu
 
 ## Currently supported sources ##
 
-* [Himawari 8](https://himawari8.nict.go.jp/) (live earth wallpaper)
 * [Bing](https://www.bing.com/) (no resolution modifiers available)
+* [Himawari 8](https://himawari8.nict.go.jp/) (live earth wallpaper)
 * [Picsum Photos](https://picsum.photos/)
 * [PlaceKitten](http://placekitten.com/) (does not really respect resolution modifiers)
 * [Unsplash](https://unsplash.com/) (random photos with tags)
