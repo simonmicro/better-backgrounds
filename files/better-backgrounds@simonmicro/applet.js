@@ -143,7 +143,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                     that._update_tooltip(jsonData.title + ' - ' + jsonData.copyright);
                     that._download_image('https://www.bing.com' + jsonData.url).then(defaultEnd).catch(errorEnd);
                 } else
-                    errorEnd('Could not download bing metadata!');
+                    errorEnd('Could not download bing metadata (' + msg.status_code + ')!');
             });
         } else if(this.image_source == 'himawari') {
             log('Downloading himawari metadata');
@@ -151,7 +151,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
             let request = Soup.Message.new('GET', 'https://himawari8-dl.nict.go.jp/himawari8/img/D531106/latest.json');
             this.httpAsyncSession.queue_message(request, function(http, msg) {
                 if (msg.status_code !== 200)
-                    that._show_notification('Could not download himawari metadata!');
+                    errorEnd('Could not download himawari metadata (' + msg.status_code + ')!');
                 else {
                     let latestDate = new Date(JSON.parse(request.response_body.data).date);
                     let zoomLvl = that.image_res_himawari;
