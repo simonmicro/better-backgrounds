@@ -80,7 +80,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         if(this.applet_icon_animation)
             Tweener.addTween(this._applet_icon, {
                 'rotation-angle-z': newValue,
-//                skipUpdates: 4, //Only render every 4th frame - this does sadly not impact the cpu usage...
+//                skipUpdates: 4, //Only render every 4th frame - this does sadly not improve the cpu usage...
                 time: seconds,
                 transition: 'easeInOutQuad'
             });
@@ -117,6 +117,10 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         this._icon_start();
         this._update_tooltip();
         let that = this;
+        function errorEnd(msg) {
+            that._show_notification(msg);
+            that._icon_stop();
+        };
         function defaultEnd() {
             that._apply_image().then(function() {
                 that._icon_stop();
@@ -137,9 +141,9 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                 if (msg.status_code === 200) {
                     let jsonData = JSON.parse(msg.response_body.data).images[0];
                     that._update_tooltip(jsonData.title + ' - ' + jsonData.copyright);
-                    that._download_image('https://www.bing.com' + jsonData.url).then(defaultEnd);
+                    that._download_image('https://www.bing.com' + jsonData.url).then(defaultEnd).catch(errorEnd);
                 } else
-                    that._show_notification('Could not download bing metadata!');
+                    errorEnd('Could not download bing metadata!');
             });
         } else if(this.image_source == 'himawari') {
             log('Downloading himawari metadata');
@@ -195,7 +199,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                                 //Not? Recall!
                                 downloadTiles();
                             }
-                        });
+                        }).catch(errorEnd);
                     }
                     downloadTiles();
                 }
@@ -207,17 +211,17 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
             let tagStr = '';
             if(this.image_tag)
                 tagStr = '?' + this.image_tag_data;
-            this._download_image('https://source.unsplash.com/' + resStr + '/' + tagStr).then(defaultEnd);
+            this._download_image('https://source.unsplash.com/' + resStr + '/' + tagStr).then(defaultEnd).catch(errorEnd);
         } else if(this.image_source == 'placekitten') {
             let resStr = '1920/1080';
             if(this.image_res_manual)
                 resStr = this.image_res_width + '/' + this.image_res_height;
-            this._download_image('http://placekitten.com/' + resStr).then(defaultEnd);
+            this._download_image('http://placekitten.com/' + resStr).then(defaultEnd).catch(errorEnd);
         } else if(this.image_source == 'picsum') {
             let resStr = '1920/1080';
             if(this.image_res_manual)
                 resStr = this.image_res_width + '/' + this.image_res_height;
-            this._download_image('https://picsum.photos/' + resStr).then(defaultEnd);
+            this._download_image('https://picsum.photos/' + resStr).then(defaultEnd).catch(errorEnd);
         }
     }
 
