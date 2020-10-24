@@ -117,7 +117,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         this._icon_start();
         this._update_tooltip();
         let that = this;
-        function errorEnd(msg) {
+        function errorEnd(msg = 'Something went horrible wrong!') {
             that._show_notification(msg);
             that._icon_stop();
         };
@@ -305,10 +305,8 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         return new Promise(function(resolve, reject) {
             that.httpAsyncSession.queue_message(request, function(http, msg) {
                 fStream.close(null);
-                if (msg.status_code !== 200) {
-                    that._show_notification('Could not download image!');
-                    reject();
-                }
+                if (msg.status_code !== 200)
+                    reject('Could not download image (' + msg.status_code + ')!');
                 resolve();
             });
         });
