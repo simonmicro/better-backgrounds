@@ -7,7 +7,12 @@ const GLib = imports.gi.GLib;
 const Tweener = imports.ui.tweener;
 const PopupMenu = imports.ui.popupMenu;
 
-const uuid = "better-backgrounds@simonmicro";
+// This applet is a modified version of better-backgrounds@simonmicro to add support for FEDI social source.
+// I plan to merge into original or to rewrite it just for social, once stabler.
+
+
+const uuid = "social-backgrounds@emmedige";
+const app_name = "fedi-backgrounds";
 const appletPath = AppletManager.appletMeta[uuid].path;
 
 function log(msg) {
@@ -50,7 +55,23 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         this.settings.bind("image-res-himawari", "image_res_himawari", this.on_settings_changed);
         this.settings.bind("image-uri", "image_uri", this.on_settings_changed);
         this.settings.bind("image-tag", "image_tag", this.on_settings_changed);
+        this.settings.bind("image-mastodon-tag", "image_mastodon_tag", this.on_settings_changed);        
         this.settings.bind("image-tag-data", "image_tag_data", this.on_settings_changed);
+        this.settings.bind("image-mastodon-tag-data", "image_mastodon_tag_data", this.on_settings_changed);
+        //this.settings.bind("image-mastodon-no-tag-data", "image_mastodon_no_tag_data", this.on_settings_changed);      
+        this.settings.bind("image-mastodon-uri", "image_mastodon_uri", this.on_settings_changed);
+        this.settings.bind("image-mastodon-login", "image_mastodon_login", this.on_settings_changed);
+        this.settings.bind("image-mastodon-password", "image_mastodon_password", this.on_settings_changed);
+        this.settings.bind("mastodon-client-id", "mastodon_client_id", this.on_settings_changed);
+        this.settings.bind("mastodon-id", "mastodon_id", this.on_settings_changed);        
+        this.settings.bind("mastodon-client-secret", "mastodon_client_secret", this.on_settings_changed);        
+        this.settings.bind("mastodon-token", "mastodon_token", this.on_settings_changed);
+        this.settings.bind("mastodon-token-type", "mastodon_token_type", this.on_settings_changed);
+        this.settings.bind("mastodon-index", "mastodon_index", this.on_settings_changed);
+        this.settings.bind("mastodon-index-flag", "mastodon_index_flag", this.on_settings_changed);           
+        this.settings.bind("option-select", "option_select", this.on_settings_changed);
+        this.settings.bind("image-mastodon-search-time", "image_mastodon_search_time", this.on_settings_changed); 
+
 
         this.set_applet_icon_name("applet");
         this._applet_icon.set_pivot_point(0.5, 0.5);
@@ -142,6 +163,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
         this._icon_start();
         this._update_tooltip();
         let that = this;
+
         function errorEnd(msg = 'Something went horrible wrong!') {
             that._show_notification(msg);
             that._icon_stop();
@@ -191,6 +213,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                 let tileNames = Array();
                 var tileId = 0;
 
+
                 function downloadTiles() {
                     //Download the tile and call ourself again
                     let y = tileId % zoomLvl;
@@ -229,7 +252,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                                 defaultEnd();
                             });
                         } else {
-                            //Not? Recall!
+                            //Not? Recall!https://jsonplaceholder.typicode.com/todos"
                             downloadTiles();
                         }
                     }).catch(errorEnd);
@@ -256,6 +279,236 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                     }
                 });
             }
+        } else if(this.image_source == 'mastodon') {
+            const FORM_URLENCODED_VALUE = "application/x-www-form-urlencoded";
+            if ( that.mastodon_client_secret === '' ) {
+                // curl -X POST -d "client_name=test&redirect_uris=urn:ietf:wg:oauth:2.0:oob&scopes=read%20write" 
+                //    -H "Content-Type: application/x-www-form-urlencoded" 
+                //    -H 'Authorization: Bearer bWF1cm8uZGVwYXNjYWxlQGhvdG1haWwuY29tOk1hc3RvZG9uMDEhCg==' -sS https://mastodon.uno/api/v1/apps
+                let request = Soup.Message.new('POST', this.image_mastodon_uri + 'api/v1/apps');
+                let body_str = "client_name="+ app_name + 
+                               "&redirect_uris=urn:ietf:wg:oauth:2.0:oob"+
+                               "&scopes=read write follow";
+                // request.request_headers.append("Content-Type", FORM_URLENCODED_VALUE);
+                let auth_code = GLib.base64_encode(this.image_mastodon_login + ":" + this.image_mastodon_password );
+                request.request_headers.append("Authorization", "Bearer " + auth_code); 
+                // send command here to create app
+                if (Soup.MAJOR_VERSION === 2) {
+                    request.set_request(FORM_URLENCODED_VALUE, Soup.MemoryUse.COPY, body_str);                    
+                    this.httpAsyncSession.queue_message(request, function(http, msg) {
+                        if (msg.status_code !== 200) {
+                            errorEnd('Soup2, could not create Mastodon app (' + msg.status_code + ')!');
+                            return;
+                        } else {                         
+                            let ret = JSON.parse(request.response_body.data);
+                            log(ret);
+                            that.mastodon_id = ret.id;
+                            that.mastodon_client_id = ret.client_id;
+                            that.mastodon_client_secret = ret.client_secret;
+                            //console.log(ret);
+                            that._change_background();
+                        }
+                    });
+                } else { //version 3
+                    request.set_request_body_from_bytes(FORM_URLENCODED_VALUE, GLib.Bytes.new(body_str));
+                    this.httpAsyncSession.send_and_read_async(request, Soup.MessagePriority.NORMAL, null, function(http, msg) {
+                        if (request.get_status() !== 200) {
+                            errorEnd('Soup3, could not create Mastodon app (' + request.get_status() + ')!');
+                            return; 
+                        } else {
+                            const bytes = that.httpAsyncSession.send_and_read_finish(msg);
+                            let ret = JSON.parse(ByteArray.toString(bytes.get_data()));
+                            that.mastodon_id = ret.id;
+                            that.mastodon_client_id = ret.client_id;
+                            that.mastodon_client_secret = ret.client_secret;                                                      
+                            //console.log(ret);
+                            that._change_background();
+                        }
+                    });
+                }
+            }          
+            console.log("token: " + this.mastodon_token );
+            if ( (this.mastodon_client_secret !== '' ) && ( this.mastodon_token === '' )) {
+                let request = Soup.Message.new('POST', this.image_mastodon_uri + 'oauth/token');
+                //request.request_headers.append("Content-Type",  "application/json; charset=UTF-8");
+                let body_str = "client_id="+ that.mastodon_client_id + 
+                    "&client_secret=" + that.mastodon_client_secret +
+                    "&grant_type=password" +
+                    "&username=" + this.image_mastodon_login +
+                    "&password=" + this.image_mastodon_password;                
+                log('Token request body: ' + body_str );
+                log('Request endpoint: ' + this.image_mastodon_uri + 'oath/token');
+                if (Soup.MAJOR_VERSION === 2) {
+                    request.set_request(FORM_URLENCODED_VALUE, Soup.MemoryUse.COPY, body_str);
+                    this.httpAsyncSession.queue_message(request, function(http, msg) {
+                        if (msg.status_code !== 200)
+                            errorEnd('Soup2, could not retrieve Mastodon token (' + msg.status_code + ')!');
+                        else {
+                            let ret = JSON.parse(request.response_body.data);
+                            this.mastodon_token = ret.token;
+                            this.mastodon_token_type = ret.token_type;
+                            //console.log(ret);
+                            that._change_background();
+                        }
+                    });
+                } else { //version 3
+                    request.set_request_body_from_bytes(FORM_URLENCODED_VALUE, GLib.Bytes.new(body_str));
+                    this.httpAsyncSession.send_and_read_async(request, Soup.MessagePriority.NORMAL, null, function(http, msg) {
+                        if (request.get_status() !== 200)
+                            errorEnd('Soup3, could not retrieve Mastodon token (' + request.get_status() + ')!');
+                        else {
+                            const bytes = that.httpAsyncSession.send_and_read_finish(msg);
+                            let ret = JSON.parse(ByteArray.toString(bytes.get_data()));
+                            this.mastodon_token = ret.token;
+                            this.mastodon_token_type = ret.token_type;                            
+                            //console.log(ret);
+                            that._change_background();
+                        }
+                    });
+                }
+            }
+//            "https://mastodon.uno/api/v1/timelines/tag/:cat?all[]=home&all[]=cat" | jq
+            if ( ( this.mastodon_client_secret === '' ) || (  this.mastodon_token === '' ) ) {
+              return;
+            }
+            let tags = "".split("");
+            if (this.image_mastodon_tag_data) {
+                tags = this.image_mastodon_tag_data.split(",");
+            } else {
+                tags = "wallpaper,abstract,landscape";
+            }
+            /*
+            "One Day" : "oneday",
+            "One Week" : "oneweek",
+            "Two Weeks" : "twoweeks",
+            "One Month" : "onemonth",
+            "Six Months" : "sixmonths",
+            "One Year" : "oneyear"
+            */
+            let date = new Date();
+            switch(this.image_mastodon_search_time) {
+                case "oneday":
+                  // code block
+                  date.setDate( date.getDate() - 1 );
+                  break;
+                default:                  
+                case "oneweek":
+                  // code block
+                  date.setDate( date.getDate() - 7 );                  
+                  break;
+                case "twoweeks":
+                  date.setDate( date.getDate() - 14 );
+                  break;
+                case "onemonth":
+                  date.setMonth( date.getMonth() -1 );
+                  break;
+                case "sixmonths":
+                  date.setMonth( date.getMonth() - 6 );
+                  break;
+                case "oneyear":
+                  date.setMonth( date.getMonth() - 12 );
+                  break;  
+            }
+
+            let id = BigInt(date.getTime());
+            id = id * 65536n;
+            log ("Computed date: " + date.getTime() + " id: " + Number(id));            
+            /*
+            let tags_fragment = "";
+            for (let i = 0; i < tags.length; i++) {
+                if (i === 0) {
+                  tags_fragment = tags[i] + "?";
+                } else {
+                  tags_fragment += "all[]=" + tags[i] + "&";
+                }
+            }
+            let no_tags = "".split("");
+            if (this.image_mastodon_no_tag_data) {
+                no_tags = this.image_mastodon_no_tag_data.split(",");
+            } else {
+                no_tags = "phone,iphone,nsfw";
+            }
+            let no_tags_fragment = "";
+            for (let i = 0; i < no_tags.length; i++) {
+                  no_tags_fragment += "none[]=" + no_tags[i] + "&";                
+            }            
+            */
+            let tags_fragment = "";
+            let first = true;
+            for (let i = 0; i < tags.length; i++) {
+                if (tags[i][0] === '-') {
+                  tags_fragment += "none[]=" + tags[i].substring(1) + "&";
+                } else if (tags[i][0] === '+') {
+                  tags_fragment += "all[]=" + tags[i].substring(1) + "&";
+                } else if (first) {
+                    tags_fragment = tags[i] + "?" + tags_fragment;
+                    first = false;
+                } else {
+                    tags_fragment += "any[]=" + tags[i] + "&";
+                }
+            }           
+            if (tags_fragment+this.image_mastodon_search_time !== this.mastodon_index_flag)
+            {
+                this.mastodon_index_flag = tags_fragment + this.image_mastodon_search_time;
+                this.mastodon_index = Number(id);
+                log ("Updated index: " + Number(id)); 
+            }     
+            let options_fragment="";
+            //this.mastodon_index = id;
+            options_fragment+="only_media=true&limit=1"
+            if (this.mastodon_index !== "0") {
+                options_fragment+="&min_id=" + this.mastodon_index;
+            }
+            //let mastodon_url = this.image_mastodon_uri + 'api/v1/timelines/tag/:' + tags_fragment + no_tags_fragment + options_fragment;
+            let mastodon_url = this.image_mastodon_uri + 'api/v1/timelines/tag/:' + tags_fragment + options_fragment;            
+            let request = Soup.Message.new('GET', mastodon_url);
+            let tmp = new Date();
+            if (this.mastodon_index !== "0") {
+              tmp.setTime((this.mastodon_index / 65536000) );
+            }
+            log('Requested endpoint: ' + mastodon_url + " index: " + this.mastodon_index + " date: " + tmp);
+            // request.request_headers.append("Authorization",  that.mastodon_token_type + " " + that.mastodon_token);             
+            if (Soup.MAJOR_VERSION === 2) {
+                this.httpAsyncSession.queue_message(request, function(http, msg) {
+                    if (msg.status_code !== 200)
+                        errorEnd('Soup2, could not retrieve Mastodon timelines (' + msg.status_code + ')!');
+                    else {
+                        let ret = JSON.parse(request.response_body.data);
+                        // if no new posts for given tags
+                        if ( ( ! ret ) || ( ret.length === 0 )) {
+
+                            defaultEnd("No new images available");
+                            return;
+                        }                        
+                        that.mastodon_index = ret[0].id;
+                        console.log("Found " + ret.length + " records.");
+                        console.log("Ret[0] contains " + ret[0].media_attachments.length + " media");
+                        console.log("Id: " +  ret[0].id);
+                        let image_url = ret[0].media_attachments[0].url;
+                        for ( let m=0; m < ret[0].media_attachments.length; m++) {
+                          console.log("image: " + ret[0].media_attachments[m].url);
+                        }
+                        let l = 10000n;
+                        l = ( ret[0].id  >> 16 ) / 1000;
+                        tmp.setTime( Number(l) );
+                        console.log("download image: " + image_url + " date: " + tmp);
+                        console.log(ret);
+                        that._download_image(image_url).then(defaultEnd).catch(errorEnd);
+                        that._update_tooltip(ret[0].media_attachments[0].description);
+
+                    }
+                });
+            } else { //version 3
+                this.httpAsyncSession.send_and_read_async(request, Soup.MessagePriority.NORMAL, null, function(http, msg) {
+                    if (request.get_status() !== 200)
+                        errorEnd('Soup3, could not retrieve Mastodon timelines (' + request.get_status() + ')!');
+                    else {
+                        const bytes = that.httpAsyncSession.send_and_read_finish(msg);
+                        console.log(JSON.parse(ByteArray.toString(bytes.get_data())));
+                    }
+                });
+            }
+            //curl -H 'Authorization: Bearer unJ-mFDDlpDfk8emIMLgEDw36nH9IejplMx9982haiQ' https://mastodon.uno/api/v1/timelines/tag/wallpapers | jq
         } else if(this.image_source == 'unsplash') {
             let resStr = 'featured';
             if(this.image_res_manual)
@@ -332,6 +585,9 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                 that._swap_chain_image_swap();
                 let gSetting = new Gio.Settings({schema: 'org.cinnamon.desktop.background'});
                 gSetting.set_string('picture-uri', 'file://' + that._get_swap_chain_image_current());
+                if(that.option_select != 'none') {
+                  gSetting.set_string('picture-options', that.option_select);
+                }
                 Gio.Settings.sync();
                 gSetting.apply();
                 resolve();
@@ -406,7 +662,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
 
     _show_notification(text) {
         if(this.applet_show_notification)
-            imports.ui.main.notify('Better Backgrounds', text);
+            imports.ui.main.notify('Social Backgrounds', text);
     }
 
     on_settings_changed() {
