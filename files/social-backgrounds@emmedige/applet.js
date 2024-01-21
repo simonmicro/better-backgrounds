@@ -464,7 +464,7 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
             let request = Soup.Message.new('GET', mastodon_url);
             let tmp = new Date();
             if (this.mastodon_index !== "0") {
-              tmp.setTime((this.mastodon_index / 65536000) );
+              tmp.setTime((this.mastodon_index / 65536) );
             }
             log('Requested endpoint: ' + mastodon_url + " index: " + this.mastodon_index + " date: " + tmp);
             // request.request_headers.append("Authorization",  that.mastodon_token_type + " " + that.mastodon_token);             
@@ -479,7 +479,8 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
 
                             defaultEnd("No new images available");
                             return;
-                        }                        
+                        }         
+                        log ("Found image");
                         that.mastodon_index = ret[0].id;
                         console.log("Found " + ret.length + " records.");
                         console.log("Ret[0] contains " + ret[0].media_attachments.length + " media");
@@ -488,11 +489,11 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                         for ( let m=0; m < ret[0].media_attachments.length; m++) {
                           console.log("image: " + ret[0].media_attachments[m].url);
                         }
-                        let l = 10000n;
-                        l = ( ret[0].id  >> 16 ) / 1000;
-                        tmp.setTime( Number(l) );
-                        console.log("download image: " + image_url + " date: " + tmp);
-                        console.log(ret);
+                        //let l = 10000n;
+                        //l = ( ret[0].id  >> 16 ) / 1000;
+                        //tmp.setTime( Number(l) );
+                        //console.log("download image: " + image_url + " date: " + tmp);
+                        //console.log(ret);
                         that._download_image(image_url).then(defaultEnd).catch(errorEnd);
                         that._update_tooltip(ret[0].media_attachments[0].description);
 
@@ -504,7 +505,28 @@ class UnsplashBackgroundApplet extends Applet.TextIconApplet {
                         errorEnd('Soup3, could not retrieve Mastodon timelines (' + request.get_status() + ')!');
                     else {
                         const bytes = that.httpAsyncSession.send_and_read_finish(msg);
-                        console.log(JSON.parse(ByteArray.toString(bytes.get_data())));
+                        let ret = JSON.parse(ByteArray.toString(bytes.get_data()));
+                        if ( ( ! ret ) || ( ret.length === 0 )) {
+
+                            defaultEnd("No new images available");
+                            return;
+                        }         
+                        log ("Found image");
+                        that.mastodon_index = ret[0].id;
+                        console.log("Found " + ret.length + " records.");
+                        console.log("Ret[0] contains " + ret[0].media_attachments.length + " media");
+                        console.log("Id: " +  ret[0].id);
+                        let image_url = ret[0].media_attachments[0].url;
+                        for ( let m=0; m < ret[0].media_attachments.length; m++) {
+                          console.log("image: " + ret[0].media_attachments[m].url);
+                        }
+                        //let l = 10000n;
+                        //l = ( ret[0].id  >> 16 ) / 1000;
+                        //tmp.setTime( Number(l) );
+                        //console.log("download image: " + image_url + " date: " + tmp);
+                        //console.log(ret);
+                        that._download_image(image_url).then(defaultEnd).catch(errorEnd);
+                        that._update_tooltip(ret[0].media_attachments[0].description);
                     }
                 });
             }
