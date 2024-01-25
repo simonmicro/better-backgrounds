@@ -10,12 +10,12 @@
         "pageEffects": {
             "type": "page",
             "title": "Effects",
-            "sections": ["effects", "imageapply"]
+            "sections": ["effects", "options", "imageapply"]
         },
         "pageSource": {
             "type": "page",
             "title": "Source",
-            "sections": ["imagesource", "imagetags", "imageapply"]
+            "sections": ["imagesource", "imagetags", "imagetags-mastodon", "imageapply"]
         },
         "pageResolution": {
             "type": "page",
@@ -37,6 +37,11 @@
             "title": "Image effects",
             "keys": ["effect-select", "effect-note"]
         },
+        "options": {
+            "type": "section",
+            "title": "Image options",
+            "keys": ["option-select", "option-note"]
+        },        
         "changeon": {
             "type": "section",
             "title": "Triggers",
@@ -45,7 +50,7 @@
         "imagesource": {
             "type": "section",
             "title": "Source",
-            "keys": ["image-source", "source-supports-info", "install-warn-imagemagick", "install-warn-cutycapt", "source-warn-unsplash", "image-uri"]
+            "keys": ["image-source", "source-supports-info", "install-warn-imagemagick", "install-warn-cutycapt", "source-warn-unsplash", "image-uri", "image-mastodon-uri", "image-mastodon-login", "image-mastodon-password"]
         },
         "imageresbing": {
             "type": "section",
@@ -82,6 +87,12 @@
             "title": "Resolution",
             "dependency": "image-source=himawari",
             "keys": ["image-res-himawari"]
+        },
+        "imagetags-mastodon": {
+            "type": "section",
+            "title": "Tags",
+            "dependency": "image-source=mastodon",
+            "keys": ["image-mastodon-tag", "image-mastodon-tag-data", "image-mastodon-search-time"]
         },
         "imagetags": {
             "type": "section",
@@ -169,6 +180,24 @@
             "None" : "none"
         }
     },
+    "option-select" : {
+        "type" : "combobox",
+        "description" : "Apply options",
+        "default" : "none",
+        "options" : {
+            "None" : "none",
+            "Wallpaper": "wallpaper",
+            "Centered" : "centered",
+            "Scaled" : "scaled",
+            "Stretched": "stretched",
+            "Zoom": "zoom",
+            "Spanned": "spanned"
+        }
+    },
+    "option-note" : {
+        "type" : "label",
+        "description" : "Apply geometry image options using the gnome settings library."
+    },
     "image-source" : {
         "type" : "combobox",
         "description" : "Image source",
@@ -179,8 +208,89 @@
             "Himawari 8" : "himawari",
             "Placekitten" : "placekitten",
             "Picsum Photos" : "picsum",
-            "Unsplash" : "unsplash"
+            "Unsplash" : "unsplash",
+            "Mastodon" : "mastodon"
         }
+    },
+    "image-mastodon-uri" : {
+        "type" : "entry",
+        "default" : "https://mastodon.uno/",
+        "description" : "Mastodon instance to retrieve images from",
+        "indent": true,
+        "tooltip" : "Enter the Mastodon URI from where you want to retrieve your background",
+        "dependency": "image-source=mastodon"
+    },
+    "image-mastodon-login" : {
+        "type" : "entry",
+        "default" : "",
+        "description" : "Credentials used to authenticate to Mastodon",
+        "indent": true,
+        "tooltip" : "Enter the Mastodon account name",
+        "dependency": "image-source=mastodon"
+    },
+    "image-mastodon-password" : {
+        "type" : "entry",
+        "default" : "",
+        "description" : "",
+        "indent": true,
+        "tooltip" : "Enter the Password for the Mastodon account",
+        "dependency": "image-source=mastodon"
+    },
+    "mastodon-id" : {
+        "type" : "entry",
+        "default" : "",
+        "description" : "",
+        "indent": true,
+        "tooltip" : "",
+        "dependency": "image-source=mastodon"
+    },
+    "mastodon-client-id" : {
+        "type" : "entry",
+        "default" : "",
+        "description" : "",
+        "indent": true,
+        "tooltip" : "",
+        "dependency": "image-source=mastodon"
+    },    
+    "mastodon-client-secret" : {
+        "type" : "entry",
+        "default" : "",
+        "description" : "",
+        "indent": true,
+        "tooltip" : "",
+        "dependency": "image-source=mastodon"
+    },
+    "mastodon-token" : {
+        "type" : "entry",
+        "default" : "",
+        "description" : "",
+        "indent": true,
+        "tooltip" : "",
+        "dependency": "image-source=mastodon"
+    },
+    "mastodon-index" : {
+        "type" : "entry",
+        "default" : "0",
+        "description" : "",
+        "indent": true,
+        "tooltip" : "",
+        "dependency": "image-source=mastodon"
+    },   
+    "mastodon-index-flag" : {
+        "type" : "entry",
+        "default" : "0",
+        "description" : "",
+        "indent": true,
+        "tooltip" : "",
+        "dependency": "image-source=mastodon"
+    },        
+    "mastodon-token-type" : {
+        "type" : "entry",
+        "default" : "",
+        "description" : "",
+        "indent": true,
+        "tooltip" : "",
+        "dependency": "image-source=mastodon"
     },
     "source-supports-info" : {
         "type" : "label",
@@ -239,6 +349,12 @@
         "description": "Use own search tags",
         "tooltip": "Specify own tags to look for..."
     },
+    "image-mastodon-tag" : {
+        "type" : "switch",
+        "default" : false,
+        "description": "Use own search tags",
+        "tooltip": "Specify own tags to look for..."
+    },
     "image-res-himawari" : {
         "type" : "combobox",
         "description" : "Image zoom factor - this factor times the tile size (550 pixels) equals the image resolution. So e.g. the factor '4x' would result in a 2200x2200 pixels image. Please note that factor² much tiles will be temporarly downloaded.",
@@ -267,6 +383,35 @@
         "indent": true,
         "dependency" : "image-tag",
         "tooltip" : "Enter your topic filters"
+    },
+    "image-mastodon-tag-data" : {
+        "type" : "entry",
+        "default" : "wallpaper,free,-nsfw,phone,iphone",
+        "description" : "Search tags, prepend '+' for mandatory ones, '-' for rejected ones",
+        "indent": true,
+        "dependency" : "image-mastodon-tag",
+        "tooltip" : "Enter your topic filters"
+    },
+    "image-mastodon-no-tag-data" : {
+        "type" : "entry",
+        "default" : "phone,iphone",
+        "description" : "Negative search tags",
+        "indent": true,
+        "dependency" : "image-mastodon-tag",
+        "tooltip" : "Enter your NEGATIVE topic filters"
+    },    
+    "image-mastodon-search-time" : {
+        "type" : "combobox",
+        "description" : "Time intervall to retrieve images from",
+        "default" : "oneweek",
+        "options" : {
+            "One Day" : "oneday",
+            "One Week" : "oneweek",
+            "Two Weeks" : "twoweeks",
+            "One Month" : "onemonth",
+            "Six Months" : "sixmonths",
+            "One Year" : "oneyear"
+        }
     },
     "image-align-info" : {
         "type" : "label",
