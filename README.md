@@ -1,3 +1,7 @@
+# This repository got archived and is no longer maintained. #
+
+Due to my lack of time and Cinnamon 22.2 breaking the applet, I decided to archive this repository. Feel free to fork it and pick up maintenance if you want to. Also, ping me then, so I can refer to your fork from here.
+
 # Better Backgrounds for Cinnamon #
 
 ![repo-size](https://img.shields.io/github/repo-size/simonmicro/better-backgrounds)
