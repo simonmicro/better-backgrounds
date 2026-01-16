@@ -1,6 +1,8 @@
 {
-    "uuid": "better-backgrounds@simonmicro",
-    "name": "Better Backgrounds",
+    "uuid": "social-backgrounds@emmedige",
+    "name": "Social Backgrounds",
     "description": "Apply new backgrounds from Bing, Himawari 8, Picsum Photos, PlaceKitten.com, Unsplash.com or even whole websites - specify search tags, triggers and more!",
-    "max-instances": "-1"
+    "max-instances": "-1",
+    "author": "simonmicro, emmedige",
+    "last-edited": 1672604119
 }
